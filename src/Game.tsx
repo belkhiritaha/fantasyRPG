@@ -4,6 +4,7 @@ import Camera from "./Camera";
 import Player from "./Player";
 import Grass from "./Grass";
 import Enemy from "./Enemy";
+import WebSocketClass from "./WebSocket";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
@@ -27,6 +28,7 @@ export default class Game extends Component<GameProps> {
     public animationMixers: THREE.AnimationMixer[] = [];
     public grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer });
     public enemy = new Enemy({ scene: this.scene, position: new THREE.Vector3(0, 0, 0), player: this.player });
+    public webSocket = new WebSocketClass();
 
     componentDidMount() {
         this.sceneSetup();
@@ -52,6 +54,8 @@ export default class Game extends Component<GameProps> {
         console.log(this.scene);
         this.clock = new THREE.Clock();
 
+        this.webSocket.connect();
+        // this.webSocket.send("Hello World!");
 
         document.body.appendChild(this.renderer.domElement);
     }
