@@ -42,7 +42,11 @@ export default class Game extends Component<GameProps> {
     }
 
     removePlayer(id: string) {
-        this.scene.remove(this.otherPlayers[id].character.gltf);
+        if (this.webSocket.id === id) {
+            return;
+        }
+        console.log("Removing player:", id);
+        this.otherPlayers[id].removeFromScene();
         delete this.otherPlayers[id];
     }
 
@@ -70,16 +74,28 @@ export default class Game extends Component<GameProps> {
                     this.player.setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
                 }
                 if (this.otherPlayers[id]) {
-                    this.otherPlayers[id].character.gltf.position.x = data[id].x;
-                    this.otherPlayers[id].character.gltf.position.y = data[id].y;
-                    this.otherPlayers[id].character.gltf.position.z = data[id].z;
+                    this.otherPlayers[id].setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
                 }
             }
         });
 
-        this.webSocket.websocket.on("disconnected", (data: { id: string }) => {
+        this.webSocket.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
+            console.log("playersRotationUpdates:", data);
+            console.log("the players:", this.otherPlayers);
+            console.log("id:", data.id);
+            // if (id === this.webSocket.id) {
+            //     // this.player.setRotation(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
+            //     return;
+            // }
+            if (this.otherPlayers[data.id]) {
+                console.log("Found player who needs rotation update:", data.id);
+                this.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
+            }
+        });
+
+        this.webSocket.websocket.on("disconnected", (data: string) => {
             console.log("Disconnected:", data);
-            this.removePlayer(data.id);
+            this.removePlayer(data);
         });
     }
 
@@ -152,7 +168,6 @@ export default class Game extends Component<GameProps> {
         if (Object.values(this.keyStates).some((value) => value)) {
             const forwardVector = this.player.getForwardVector();
             const sideVector = this.player.getSideVector();
-            console.log(forwardVector, sideVector);
             this.webSocket.sendMovementDirection({
                 forwardVector: forwardVector,
                 sideVector: sideVector,
@@ -167,6 +182,15 @@ export default class Game extends Component<GameProps> {
             if (this.camera.camera) {
                 this.camera.camera.rotation.y -= event.movementX / 500;
                 this.camera.camera.rotation.x -= event.movementY / 500;
+
+                const lookAt = new THREE.Vector3(0, 0, -1);
+                lookAt.applyQuaternion(this.camera.camera.quaternion);
+                const yAxisAngle = Math.atan2(lookAt.x, lookAt.z);
+                console.log("in degrees:", yAxisAngle * 180 / Math.PI);
+                // console.log("lookAt:", lookAt);
+                this.webSocket.sendRotation({
+                    yAxisAngle: yAxisAngle
+                });
             }
         }
     };

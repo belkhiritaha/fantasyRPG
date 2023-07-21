@@ -43,7 +43,7 @@ export default class Player extends Component<PlayerProps> {
 
     setPosition(position: THREE.Vector3) {
         this.position.copy(position);
-        this.props.camera.position.copy(position);
+        this.props.camera.position.copy(position.clone().add(new THREE.Vector3(0, this.height, 0)));
     }
 
     getForwardVector(): THREE.Vector3 {

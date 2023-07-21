@@ -38,6 +38,7 @@ export default class Character extends Component<CharacterProps> {
                         });
                     }
                 });
+                // gltf.scene.scale.set(2, 2, 2);
                 gltf.scene.position.set(0, 0, 0);
                 this.props.scene.add(gltf.scene);
                 this.gltf = gltf.scene;

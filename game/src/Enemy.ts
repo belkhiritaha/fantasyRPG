@@ -51,6 +51,15 @@ export default class Enemy extends Component<EnemyProps> {
         this.character.gltf?.position.copy(position);
     }
 
+    // set z axis angle
+    setYAxisAngle(yAxisAngle: number) {
+        this.character.gltf.rotation.y = yAxisAngle;
+    }
+
+    removeFromScene() {
+        this.props.scene.remove(this.character.gltf);
+    }
+
     getForwardVector(): THREE.Vector3 {
         this.character.gltf.getWorldDirection(this.direction);
         this.direction.y = 0;

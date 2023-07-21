@@ -39,6 +39,11 @@ class WebSocketClass extends Component<WebSocketProps> {
         this.websocket.emit('movement', data);
     }
 
+    sendRotation(data: { yAxisAngle: number }): void {
+        if (!this.websocket) return;
+        this.websocket.emit('rotation', data);
+    }
+
     close(): void {
         if (!this.websocket) {
             console.warn("WebSocket is not connected. Cannot close.");
