@@ -182,7 +182,6 @@ export default class Game extends Component<GameProps> {
                 const lookAt = new THREE.Vector3(0, 0, -1);
                 lookAt.applyQuaternion(this.camera.camera.quaternion);
                 const yAxisAngle = Math.atan2(lookAt.x, lookAt.z);
-                console.log("in degrees:", yAxisAngle * 180 / Math.PI);
                 // console.log("lookAt:", lookAt);
                 this.webSocket.sendRotation({
                     yAxisAngle: yAxisAngle

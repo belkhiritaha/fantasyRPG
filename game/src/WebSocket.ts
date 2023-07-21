@@ -14,7 +14,7 @@ interface WebSocketProps {
 
 class WebSocketClass extends Component<WebSocketProps> {
     public websocket: Socket | null;
-    private url = "ws://localhost:3000"
+    private url = import.meta.env.NODE_ENV === 'prod' ? import.meta.env.PROD_WS_URL : import.meta.env.DEV_WS_URL;
     public id: string;
 
     constructor(props: WebSocketProps) {
@@ -28,7 +28,7 @@ class WebSocketClass extends Component<WebSocketProps> {
             return;
         }
 
-        this.websocket = io(this.url);
+        this.websocket = io(this.url ?? "");
 
         console.log(this.websocket)
 
