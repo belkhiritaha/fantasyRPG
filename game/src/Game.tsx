@@ -80,15 +80,11 @@ export default class Game extends Component<GameProps> {
         });
 
         this.webSocket.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
-            console.log("playersRotationUpdates:", data);
-            console.log("the players:", this.otherPlayers);
-            console.log("id:", data.id);
             // if (id === this.webSocket.id) {
             //     // this.player.setRotation(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
             //     return;
             // }
             if (this.otherPlayers[data.id]) {
-                console.log("Found player who needs rotation update:", data.id);
                 this.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
             }
         });

@@ -2,18 +2,33 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import http from 'http';
 import * as THREE from 'three';
+import fs from 'fs';
 
 // import { createWebSocketServer } from './websocket/websockets';
 import { Server, Socket } from 'socket.io';
+import https from 'https';
 
 import cors from 'cors';
 
 dotenv.config();
 
+let server : http.Server;
 const app: Express = express();
-const server = http.createServer(app);
 
-const allowedOrigins = ["http://localhost:5000", "http://localhost:5173", "http://localhost:2345", "http://" + process.env.APP_URL];
+if (process.env.NODE_ENV === 'prod' && process.env.KEY_PATH && process.env.CERT_PATH) {
+    const httpsOptions = {
+        key: fs.readFileSync(process.env.KEY_PATH ?? ''),
+        cert: fs.readFileSync(process.env.CERT_PATH ?? ''),
+    };
+    console.log('Starting HTTPS server');
+    server = https.createServer(httpsOptions, app);    
+}
+else {
+    console.log('Starting HTTP server');
+    server = http.createServer(app);
+}
+
+const allowedOrigins = ["http://localhost:5173", "https://fantasy.belkhiri.dev"];
 const options: cors.CorsOptions = {
     origin: allowedOrigins,
     credentials: true,
@@ -137,5 +152,5 @@ setInterval(updatePlayerPositions, updateInterval);
 
 
 server.listen(port, () => {
-    console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+    console.log(`⚡️[server]: Server is running at port ${port}`);
 });
