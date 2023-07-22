@@ -14,7 +14,7 @@ interface WebSocketProps {
 
 class WebSocketClass extends Component<WebSocketProps> {
     public websocket: Socket | null;
-    private url = import.meta.env.NODE_ENV === 'prod' ? import.meta.env.PROD_WS_URL : import.meta.env.DEV_WS_URL;
+    private url = import.meta.env.ENV === 'prod' ? import.meta.env.PROD_WS_URL : import.meta.env.DEV_WS_URL;
     public id: string;
 
     constructor(props: WebSocketProps) {

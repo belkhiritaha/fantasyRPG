@@ -15,7 +15,7 @@ dotenv.config();
 let server : http.Server;
 const app: Express = express();
 
-if (process.env.NODE_ENV === 'prod' && process.env.KEY_PATH && process.env.CERT_PATH) {
+if (process.env.ENV === 'prod' && process.env.KEY_PATH && process.env.CERT_PATH) {
     const httpsOptions = {
         key: fs.readFileSync(process.env.KEY_PATH ?? ''),
         cert: fs.readFileSync(process.env.CERT_PATH ?? ''),
