@@ -44,7 +44,7 @@ export default class Character extends Component<CharacterProps> {
                 this.gltf = gltf.scene;
                 this.mixer = new THREE.AnimationMixer(this.gltf);
 
-                console.log(gltf.animations);
+                // console.log(gltf.animations);
                 this.runAction = this.mixer.clipAction(gltf.animations[48]);
                 this.idleAction = this.mixer.clipAction(gltf.animations[36]);
                 this.attackAction = this.mixer.clipAction(gltf.animations[0]);

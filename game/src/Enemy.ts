@@ -13,6 +13,7 @@ export default class Enemy extends Component<EnemyProps> {
     public direction: THREE.Vector3;
     public velocity: THREE.Vector3;
     public height = 0;
+    public name = '';
 
     constructor(props: EnemyProps) {
         super(props);

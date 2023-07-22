@@ -2,13 +2,14 @@ import { Component } from "react";
 import { io, Socket } from "socket.io-client";
 import * as THREE from "three";
 import Player from "./Player";
-import Enemy from "./Enemy";
+import OtherPlayersHandler from "./handlers/OtherPlayersHandler";
 
 interface WebSocketProps {
     scene: THREE.Scene;
     player: Player;
-    addPlayer: (id: string, position: THREE.Vector3) => void;
-    removePlayer: (id: string) => void;
+    setPlayerNameState: (playerName: string) => void;
+    otherPlayersHandler: OtherPlayersHandler;
+    chatBoxRef: React.RefObject<any>;
 }
 
 
@@ -20,6 +21,73 @@ class WebSocketClass extends Component<WebSocketProps> {
     constructor(props: WebSocketProps) {
         super(props);
         this.websocket = null;
+    }
+
+    initializeGameState(): void {
+        if (!this.websocket) return;
+        this.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number } }, name: string }) => {
+            console.log("Init game state:", data);
+            this.id = data.id;
+            for (const id in data.players) {
+                if (id === data.id) {
+                    this.props.player.name = data.name;
+                    this.props.setPlayerNameState(data.name);
+                    console.log("Player name:", this.props.player.name);
+                    continue;
+                }
+                this.props.otherPlayersHandler.addPlayer(id, new THREE.Vector3(data.players[id].x, data.players[id].y, data.players[id].z));
+            }
+        });
+    }
+
+    newPlayerListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("new_player", (data: { id: string, position: { x: number, y: number, z: number }, name: string }) => {
+            console.log("New player:", data);
+            this.props.otherPlayersHandler.addPlayer(data.id, new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+        });
+    }
+
+    newMessageListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("new_message", (data: { id: string, message: string }) => {
+            console.log("New message:", data);
+            this.props.chatBoxRef.current?.addMessage(data);
+        });
+    }
+
+    playersPositionUpdatesListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("playersPositionUpdates", (data: { [id: string]: { x: number, y: number, z: number } }) => {
+            for (const id in data) {
+                if (id === this.id) {
+                    this.props.player.setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
+                }
+                if (this.props.otherPlayersHandler.otherPlayers[id]) {
+                    this.props.otherPlayersHandler.otherPlayers[id].setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
+                }
+            }
+        });
+    }
+
+    playerRotationUpdateListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
+            if (this.props.otherPlayersHandler.otherPlayers[data.id]) {
+                this.props.otherPlayersHandler.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
+            }
+        });
+    }
+
+    disconnected(): void {
+        if (!this.websocket) return;
+        this.websocket.on("disconnected", (data: string) => {
+            console.log("Disconnected:", data);
+            if (data === this.id) {
+                return;
+            }
+            this.props.otherPlayersHandler.removePlayer(data);
+        });
     }
 
     connect(): void {

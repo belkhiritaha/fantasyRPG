@@ -13,6 +13,7 @@ export default class Player extends Component<PlayerProps> {
     public direction: THREE.Vector3;
     public velocity: THREE.Vector3;
     public isTyping = false;
+    public name = '';
     public height = 1.8;
 
     constructor(props: PlayerProps) {

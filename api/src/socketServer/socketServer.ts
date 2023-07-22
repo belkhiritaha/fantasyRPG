@@ -1,7 +1,9 @@
 import { Server, Socket } from 'socket.io';
 import * as THREE from 'three';
+import messageModels from '../models/message.models';
 
 interface Player {
+    name: string;
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     forwardVector: THREE.Vector3;
@@ -9,16 +11,20 @@ interface Player {
 }
 
 const groundPosY = -10;
+const adjectives = ["Whimsical","Bubbly","Zany","Quirky","Wacky","Goofy","Cheeky","Kooky","Silly","Bouncy","Peculiar","Zesty","Fuzzy","Jovial","Jolly","Boisterous","Witty","Funky","Spiffy","Zippy"];
+const animals = ["Penguin","Cheetah","Sloth","Kangaroo","Lemur","Hippo","Narwhal","Platypus","Chinchilla","Meerkat","Quokka","Raccoon","Alpaca","Hedgehog","Llama","Pufferfish","Axolotl","Capybara","Orangutan","Wombat"];
+
 const players: { [id: string]: Player } = {};
 
 export function initializeSocket(io: Server) {
     io.on('connection', (socket: Socket) => {
         console.log('New WebSocket connection');
         const playerId = socket.id;
-        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), forwardVector: new THREE.Vector3(), yAxisAngle: 0 };
-        socket.emit('initGameState', { id: playerId, players: players });
-
-        socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].position });
+        const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
+        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), forwardVector: new THREE.Vector3(), yAxisAngle: 0 , name: name};
+        socket.emit('initGameState', { id: playerId, players: players, name: name });
+        
+        socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].position, name: name });
 
         socket.on('movement', (data: { forwardVector: { x: number, y: number, z: number }, sideVector: { x: number, y: number, z: number }, deltaTime: number, keyStates: { [key: string]: boolean } }) => {
             const forwardVector = new THREE.Vector3(data.forwardVector.x, data.forwardVector.y, data.forwardVector.z);

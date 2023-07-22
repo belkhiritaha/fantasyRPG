@@ -1,12 +1,15 @@
 import React, { Component, RefObject } from "react";
+import { useRef, createRef } from "react";
 import * as THREE from "three";
 import Camera from "./Camera";
 import Player from "./Player";
+import CurrentPlayerHandler from "./handlers/CurrentPlayerHandler";
+import OtherPlayersHandler from "./handlers/OtherPlayersHandler";
 import Grass from "./Grass";
 import Enemy from "./Enemy";
 import WebSocketClass from "./WebSocket";
 
-import ChatBox from "./HUD/ChatBox";
+import ChatBox , { ChatBoxRef, ChatMessage } from "./HUD/ChatBox";
 
 interface GameProps {
 }
@@ -26,71 +29,33 @@ export default class Game extends Component<GameProps> {
     public player = new Player({ camera: this.camera.camera, scene: this.scene });
     public animationMixers: THREE.AnimationMixer[] = [];
     public grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer });
+    state = {
+        isTyping: false,
+        playerName: ""
+    };
+    public chatBoxRef = createRef<ChatBoxRef>();
+    
+    public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
+    public otherPlayersHandler = new OtherPlayersHandler({ camera: this.camera.camera, scene: this.scene });
+
     public webSocket = new WebSocketClass({ 
         player: this.player,
         scene: this.scene,
-        addPlayer: this.addPlayer.bind(this),
-        removePlayer: this.removePlayer.bind(this)
-    });
-    state = {
-        isTyping: false
-    };
-    
-    public otherPlayers: { [id: string]: Enemy } = {};
-
-    addPlayer(id: string, position: THREE.Vector3) {
-        this.otherPlayers[id] = new Enemy({ scene: this.scene, position: position });
-        this.scene.add(this.otherPlayers[id].character.gltf);
-    }
-
-    removePlayer(id: string) {
-        if (this.webSocket.id === id) {
-            return;
+        otherPlayersHandler: this.otherPlayersHandler,
+        chatBoxRef: this.chatBoxRef,
+        setPlayerNameState: (playerName: string) => {
+            this.setState({ playerName: playerName });
         }
-        console.log("Removing player:", id);
-        this.otherPlayers[id].removeFromScene();
-        delete this.otherPlayers[id];
-    }
+    });
 
     handleSocketSpecialEvents() {
         if (!this.webSocket.websocket) return;
-        this.webSocket.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number } } }) => {
-            console.log("Init game state:", data);
-            this.webSocket.id = data.id;
-            for (const id in data.players) {
-                if (id === data.id) {
-                    continue;
-                }
-                this.addPlayer(id, new THREE.Vector3(data.players[id].x, data.players[id].y, data.players[id].z));
-            }
-        });
-
-        this.webSocket.websocket.on("new_player", (data: { id: string, position: { x: number, y: number, z: number } }) => {
-            console.log("New player:", data);
-            this.addPlayer(data.id, new THREE.Vector3(data.position.x, data.position.y, data.position.z));
-        });
-
-        this.webSocket.websocket.on("playersPositionUpdates", (data: { [id: string]: { x: number, y: number, z: number } }) => {
-            for (const id in data) {
-                if (id === this.webSocket.id) {
-                    this.player.setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
-                }
-                if (this.otherPlayers[id]) {
-                    this.otherPlayers[id].setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
-                }
-            }
-        });
-
-        this.webSocket.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
-            if (this.otherPlayers[data.id]) {
-                this.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
-            }
-        });
-
-        this.webSocket.websocket.on("disconnected", (data: string) => {
-            console.log("Disconnected:", data);
-            this.removePlayer(data);
-        });
+        this.webSocket.initializeGameState();
+        this.webSocket.newPlayerListener();
+        this.webSocket.newMessageListener();
+        this.webSocket.playersPositionUpdatesListener();
+        this.webSocket.playerRotationUpdateListener();
+        this.webSocket.disconnected();
     }
 
     componentDidMount() {
@@ -98,6 +63,7 @@ export default class Game extends Component<GameProps> {
         this.startAnimationLoop();
         this.loadModels();
         console.log(this.camera.camera);
+        console.log(this.chatBoxRef);
         window.addEventListener('mousemove', this.mouseMoveListener);
         window.addEventListener('mousedown', this.clickDownListener);
         // window.addEventListener('mouseup', this.clickUpListener);
@@ -106,6 +72,7 @@ export default class Game extends Component<GameProps> {
         // resize listener
         window.addEventListener('resize', this.handleWindowResize);
     }
+
 
     handleWindowResize = () => {
         const width = window.innerWidth;
@@ -192,8 +159,8 @@ export default class Game extends Component<GameProps> {
         }
 
         // update all other players
-        for (const id in this.otherPlayers) {
-            this.otherPlayers[id].update(delaTime);
+        for (const id in this.otherPlayersHandler.otherPlayers) {
+            this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
 
         this.renderer.render(this.scene, this.camera.camera);
@@ -208,7 +175,10 @@ export default class Game extends Component<GameProps> {
     keyDownListener = (event: KeyboardEvent) => {
         // if pointer is locked
         if (document.pointerLockElement === document.body) {
-            this.keyStates[event.code] = true;
+            // if element with id message-input is not focused
+            if (document.activeElement?.id !== "message-input") {
+                this.keyStates[event.code] = true;
+            }
         }
     }
 
@@ -220,7 +190,7 @@ export default class Game extends Component<GameProps> {
     render() {
         return (
             <div ref={this.mount}>
-                <ChatBox isTyping={this.state.isTyping} />
+                <ChatBox ref={this.chatBoxRef} playerName={this.state.playerName} />
             </div>
         );
     }

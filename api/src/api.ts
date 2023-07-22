@@ -52,7 +52,7 @@ app.use("/messages", messageRouter);
 const port = process.env.PORT;
 
 
-const io = new Server(server, {
+export const io = new Server(server, {
     cors: {
         origin: '*',
     },
