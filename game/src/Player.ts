@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import * as THREE from 'three';
+import Weapon from './loaders/Weapon';
 
 const BLOCK_RADIUS = 2;
 
@@ -15,12 +16,16 @@ export default class Player extends Component<PlayerProps> {
     public isTyping = false;
     public name = '';
     public height = 1.8;
+    public weapon: Weapon;
+    public group: THREE.Group;
 
     constructor(props: PlayerProps) {
         super(props);
         this.position = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.velocity = new THREE.Vector3();
+        this.weapon = new Weapon({ position: new THREE.Vector3(), scene: props.scene, player: this, camera: props.camera });
+        this.group = new THREE.Group();
     }
 
     setPosition(position: THREE.Vector3) {

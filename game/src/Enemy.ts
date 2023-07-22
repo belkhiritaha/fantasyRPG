@@ -1,6 +1,6 @@
 import { Component } from "react";
 import * as THREE from "three";
-import Character from "./Character";
+import Character from "./loaders/Character";
 
 interface EnemyProps {
     position: THREE.Vector3;

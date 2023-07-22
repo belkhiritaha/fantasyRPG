@@ -66,7 +66,7 @@ export default class Game extends Component<GameProps> {
         console.log(this.chatBoxRef);
         window.addEventListener('mousemove', this.mouseMoveListener);
         window.addEventListener('mousedown', this.clickDownListener);
-        // window.addEventListener('mouseup', this.clickUpListener);
+        window.addEventListener('mouseup', this.clickUpListener);
         window.addEventListener('keydown', this.keyDownListener);
         window.addEventListener('keyup', this.keyUpListener);
         // resize listener
@@ -93,6 +93,21 @@ export default class Game extends Component<GameProps> {
         this.scene.add(this.grass.grassMesh);
         console.log(this.scene);
         this.clock = new THREE.Clock();
+
+        
+        
+        
+        
+        // add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(10, 10, 10);
+        this.scene.add(directionalLight);
+        
+        
+        this.scene.add(this.camera.camera);
 
         this.webSocket.connect();
         this.handleSocketSpecialEvents();
@@ -137,7 +152,6 @@ export default class Game extends Component<GameProps> {
                 const lookAt = new THREE.Vector3(0, 0, -1);
                 lookAt.applyQuaternion(this.camera.camera.quaternion);
                 const yAxisAngle = Math.atan2(lookAt.x, lookAt.z);
-                // console.log("lookAt:", lookAt);
                 this.webSocket.sendRotation({
                     yAxisAngle: yAxisAngle
                 });
@@ -149,6 +163,13 @@ export default class Game extends Component<GameProps> {
         if (document.pointerLockElement !== document.body) {
             document.body.requestPointerLock();
         }
+        this.player.weapon.shoot();
+    }
+
+    clickUpListener = (event: MouseEvent) => {
+        // if (document.pointerLockElement === document.body) {
+        //     document.exitPointerLock();
+        // }
     }
 
     startAnimationLoop() {
@@ -157,11 +178,14 @@ export default class Game extends Component<GameProps> {
         for (let i = 0; i < 5; i++) {
             this.controls(delaTime);
         }
-
+        
         // update all other players
         for (const id in this.otherPlayersHandler.otherPlayers) {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
+        
+        this.player.weapon.bobbleWeapon(delaTime);
+        // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
         this.renderer.render(this.scene, this.camera.camera);
         this.grass.animate(this.clock.getElapsedTime());

@@ -23,21 +23,11 @@ export default class Character extends Component<CharacterProps> {
         super(props);
         const loader = new GLTFLoader();
 
-        const texture = new THREE.TextureLoader().load("knight_texture.png");
+        // const texture = new THREE.TextureLoader().load("knight_texture.png");
 
         loader.load(
             "Knight.glb",
             (gltf) => {
-                gltf.scene.traverse((child) => {
-                    if (child instanceof THREE.Mesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        child.material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            // skinning: true,
-                        });
-                    }
-                });
                 // gltf.scene.scale.set(2, 2, 2);
                 gltf.scene.position.set(0, 0, 0);
                 this.props.scene.add(gltf.scene);
