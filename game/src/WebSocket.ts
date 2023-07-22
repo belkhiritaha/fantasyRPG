@@ -72,9 +72,14 @@ class WebSocketClass extends Component<WebSocketProps> {
 
     playerRotationUpdateListener(): void {
         if (!this.websocket) return;
-        this.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
+        this.websocket.on("playerRotationUpdate", (data: { id: string, lookAt: { x: number, y: number, z: number } }) => {
+            const yAxisAngle = Math.atan2(data.lookAt.x, data.lookAt.z);
+            // const xAxisAngle = Math.atan2(data.lookAt.y, data.lookAt.z);
+            // project lookAt vector to get x axis angle
+            const xAxisAngle = Math.atan2(- data.lookAt.y, Math.sqrt(data.lookAt.x ** 2 + data.lookAt.z ** 2));
             if (this.props.otherPlayersHandler.otherPlayers[data.id]) {
-                this.props.otherPlayersHandler.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
+                this.props.otherPlayersHandler.otherPlayers[data.id].setYAxisAngle(yAxisAngle);
+                this.props.otherPlayersHandler.otherPlayers[data.id].setXAxisAngle(xAxisAngle);
             }
         });
     }
@@ -108,7 +113,7 @@ class WebSocketClass extends Component<WebSocketProps> {
         this.websocket.emit('movement', data);
     }
 
-    sendRotation(data: { yAxisAngle: number }): void {
+    sendRotation(data: { lookAt: { x: number, y: number, z: number } }): void {
         if (!this.websocket) return;
         this.websocket.emit('rotation', data);
     }

@@ -6,8 +6,7 @@ interface Player {
     name: string;
     position: THREE.Vector3;
     velocity: THREE.Vector3;
-    forwardVector: THREE.Vector3;
-    yAxisAngle: number;
+    lookAt: THREE.Vector3;
 }
 
 const groundPosY = -10;
@@ -21,7 +20,7 @@ export function initializeSocket(io: Server) {
         console.log('New WebSocket connection');
         const playerId = socket.id;
         const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
-        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), forwardVector: new THREE.Vector3(), yAxisAngle: 0 , name: name};
+        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name };
         socket.emit('initGameState', { id: playerId, players: players, name: name });
         
         socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].position, name: name });
@@ -47,14 +46,13 @@ export function initializeSocket(io: Server) {
             if (data.keyStates['ShiftLeft']) {
                 players[playerId].velocity.y = -1;
             }
-
-            players[playerId].forwardVector = forwardVector;
         });
 
-        socket.on('rotation', (data: { yAxisAngle: number }) => {
-            players[playerId].yAxisAngle = data.yAxisAngle;
+        socket.on('rotation', (data: { lookAt: { x: number, y: number, z: number } }) => {
+            console.log(data);
+            players[playerId].lookAt = new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z);
 
-            socket.broadcast.emit('playerRotationUpdate', { id: playerId, yAxisAngle: data.yAxisAngle });
+            socket.broadcast.emit('playerRotationUpdate', { id: playerId, lookAt: players[playerId].lookAt });
         });
 
         socket.on('disconnect', () => {

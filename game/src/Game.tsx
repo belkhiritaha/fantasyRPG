@@ -153,7 +153,7 @@ export default class Game extends Component<GameProps> {
                 lookAt.applyQuaternion(this.camera.camera.quaternion);
                 const yAxisAngle = Math.atan2(lookAt.x, lookAt.z);
                 this.webSocket.sendRotation({
-                    yAxisAngle: yAxisAngle
+                    lookAt: lookAt,
                 });
             }
         }

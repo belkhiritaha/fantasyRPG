@@ -98,7 +98,6 @@ export default class Weapon extends Component<WeaponProps> {
     bobbleWeapon(deltaTime: number) {
         if (this.mixer) {
             this.mixer.update(deltaTime);
-            console.log(this.gltf.rotation);
         }
     }
 

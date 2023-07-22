@@ -34,7 +34,7 @@ export default class Character extends Component<CharacterProps> {
                 this.gltf = gltf.scene;
                 this.mixer = new THREE.AnimationMixer(this.gltf);
 
-                // console.log(gltf.animations);
+                console.log(gltf);
                 this.runAction = this.mixer.clipAction(gltf.animations[48]);
                 this.idleAction = this.mixer.clipAction(gltf.animations[36]);
                 this.attackAction = this.mixer.clipAction(gltf.animations[0]);
@@ -45,8 +45,28 @@ export default class Character extends Component<CharacterProps> {
                 // this.attackAction.play();
                 this.idleAction.timeScale = 3;
                 this.idleAction.play();
+
+                // console.log((gltf.scene.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14]);
+
+                const helmet = (gltf.scene.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14].children[0];
+                // (gltf.scene.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones.forEach(bone => {
+                //     if (Math.random() < 0.5) return;
+                //     bone.rotation.x = Math.random() * 2 * Math.PI;
+                //     bone.rotation.y = Math.random() * 2 * Math.PI;
+                //     bone.rotation.z = Math.random() * 2 * Math.PI;
+                // });
+                // // headBone.rotation.x = 1;
+
+                helmet.rotation.x = 1;
+                // remove helmet
+                helmet.parent?.remove(helmet);
             }
         );
+    }
+
+    rotateHeadX(angle: number) {
+        const headBone = (this.gltf.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14];
+        headBone.rotation.x = angle;
     }
 
     update(deltaTime: number) {
