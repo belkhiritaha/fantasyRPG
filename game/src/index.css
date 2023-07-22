@@ -50,7 +50,7 @@ h1 h2 h3 h4 h5 h6 {
 
 * {
     font: Inconsolata, monospace;
-    color: white;
+    /* color: white; */
     text-shadow: 0 0 5px #C8C8C8;
 }
 

@@ -4,11 +4,14 @@ import http from 'http';
 import * as THREE from 'three';
 import fs from 'fs';
 
+import { connect } from 'mongoose';
+
 import { Server, Socket } from 'socket.io';
 import https from 'https';
 
 import cors from 'cors';
 import { initializeSocket, updatePlayerPositions } from './socketServer/socketServer';
+import messageRouter from './routers/messageRouter';
 
 dotenv.config();
 
@@ -34,7 +37,17 @@ const options: cors.CorsOptions = {
     credentials: true,
 };
 
+const mongoUrl = process.env.ENV === 'prod' ? process.env.PROD_MONGO_URL : process.env.DEV_MONGO_URL;
+console.log(mongoUrl);
+connect(mongoUrl ?? '').then(() => {
+    console.log('Connected to MongoDB');
+}).catch((err) => {
+    console.log('Failed to connect to MongoDB', err);
+});
+
 app.use(cors(options));
+app.use(express.json());
+app.use("/messages", messageRouter);
 
 const port = process.env.PORT;
 

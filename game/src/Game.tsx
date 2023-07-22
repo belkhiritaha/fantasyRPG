@@ -6,8 +6,7 @@ import Grass from "./Grass";
 import Enemy from "./Enemy";
 import WebSocketClass from "./WebSocket";
 
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-
+import ChatBox from "./HUD/ChatBox";
 
 interface GameProps {
 }
@@ -22,7 +21,7 @@ export default class Game extends Component<GameProps> {
     public mount: RefObject<HTMLDivElement> = React.createRef();
     public ground = new THREE.Mesh(
         new THREE.PlaneGeometry(100, 100, 50, 50),
-        new THREE.MeshBasicMaterial({ color: "rgb(104,255,127)" })
+        new THREE.MeshBasicMaterial({ color: "rgb(95, 171, 91)" })
         );
     public player = new Player({ camera: this.camera.camera, scene: this.scene });
     public animationMixers: THREE.AnimationMixer[] = [];
@@ -33,6 +32,9 @@ export default class Game extends Component<GameProps> {
         addPlayer: this.addPlayer.bind(this),
         removePlayer: this.removePlayer.bind(this)
     });
+    state = {
+        isTyping: false
+    };
     
     public otherPlayers: { [id: string]: Enemy } = {};
 
@@ -80,10 +82,6 @@ export default class Game extends Component<GameProps> {
         });
 
         this.webSocket.websocket.on("playerRotationUpdate", (data: { id: string, yAxisAngle: number }) => {
-            // if (id === this.webSocket.id) {
-            //     // this.player.setRotation(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
-            //     return;
-            // }
             if (this.otherPlayers[data.id]) {
                 this.otherPlayers[data.id].setYAxisAngle(data.yAxisAngle);
             }
@@ -105,7 +103,17 @@ export default class Game extends Component<GameProps> {
         // window.addEventListener('mouseup', this.clickUpListener);
         window.addEventListener('keydown', this.keyDownListener);
         window.addEventListener('keyup', this.keyUpListener);
+        // resize listener
+        window.addEventListener('resize', this.handleWindowResize);
     }
+
+    handleWindowResize = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        this.renderer.setSize(width, height);
+        this.camera.camera.aspect = width / height;
+        this.camera.camera.updateProjectionMatrix();
+    };
 
     sceneSetup() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -121,7 +129,6 @@ export default class Game extends Component<GameProps> {
 
         this.webSocket.connect();
         this.handleSocketSpecialEvents();
-        // this.webSocket.send("Hello World!");
 
         document.body.appendChild(this.renderer.domElement);
     }
@@ -141,25 +148,6 @@ export default class Game extends Component<GameProps> {
     }
 
     controls = (deltaTime: number) => {
-        const speedDelta = deltaTime * 10;
-        // if (this.keyStates['KeyW']) {
-        //     this.player.velocity.add(this.player.getForwardVector().multiplyScalar(speedDelta));
-        // }
-        // if (this.keyStates['KeyS']) {
-        //     this.player.velocity.add(this.player.getForwardVector().multiplyScalar(- speedDelta));
-        // }
-        // if (this.keyStates['KeyA']) {
-        //     this.player.velocity.add(this.player.getSideVector().multiplyScalar(- speedDelta));
-        // }
-        // if (this.keyStates['KeyD']) {
-        //     this.player.velocity.add(this.player.getSideVector().multiplyScalar(speedDelta));
-        // }
-        // if (this.keyStates['Space']) {
-        //     this.player.velocity.y = 1;
-        // }
-        // if (this.keyStates['ShiftLeft']) {
-        //     this.player.velocity.y = - 1;
-        // }
         // if some key is pressed
         if (Object.values(this.keyStates).some((value) => value)) {
             const forwardVector = this.player.getForwardVector();
@@ -201,7 +189,6 @@ export default class Game extends Component<GameProps> {
 
         for (let i = 0; i < 5; i++) {
             this.controls(delaTime);
-            this.player.update(delaTime);
         }
 
         // update all other players
@@ -219,7 +206,10 @@ export default class Game extends Component<GameProps> {
     }
 
     keyDownListener = (event: KeyboardEvent) => {
-        this.keyStates[event.code] = true;
+        // if pointer is locked
+        if (document.pointerLockElement === document.body) {
+            this.keyStates[event.code] = true;
+        }
     }
 
     keyUpListener = (event: KeyboardEvent) => {
@@ -229,7 +219,9 @@ export default class Game extends Component<GameProps> {
 
     render() {
         return (
-            <div ref={this.mount} />
+            <div ref={this.mount}>
+                <ChatBox isTyping={this.state.isTyping} />
+            </div>
         );
     }
 }
