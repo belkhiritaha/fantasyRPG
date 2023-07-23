@@ -2,7 +2,9 @@ import { Component } from "react";
 import { io, Socket } from "socket.io-client";
 import * as THREE from "three";
 import Player from "./Player";
+import Mob from "./Mob";
 import OtherPlayersHandler from "./handlers/OtherPlayersHandler";
+import Enemy from "./Enemy";
 
 interface WebSocketProps {
     scene: THREE.Scene;
@@ -10,6 +12,7 @@ interface WebSocketProps {
     setPlayerNameState: (playerName: string) => void;
     otherPlayersHandler: OtherPlayersHandler;
     chatBoxRef: React.RefObject<any>;
+    mob: Mob;
 }
 
 
@@ -70,6 +73,14 @@ class WebSocketClass extends Component<WebSocketProps> {
         });
     }
 
+    mobPositionUpdatesListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("mobPositionUpdate", (data: { id: string, position: { x: number, y: number, z: number } }) => {
+            this.props.mob.setPosition(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+        });
+    }
+
+
     playerRotationUpdateListener(): void {
         if (!this.websocket) return;
         this.websocket.on("playerRotationUpdate", (data: { id: string, lookAt: { x: number, y: number, z: number } }) => {
@@ -81,6 +92,26 @@ class WebSocketClass extends Component<WebSocketProps> {
                 this.props.otherPlayersHandler.otherPlayers[data.id].setYAxisAngle(yAxisAngle);
                 this.props.otherPlayersHandler.otherPlayers[data.id].setXAxisAngle(xAxisAngle);
             }
+        });
+    }
+
+    sendShoot(): void {
+        if (!this.websocket) return;
+        this.websocket.emit("attack");
+    }
+
+    listenDebug(): void {
+        if (!this.websocket) return;
+        this.websocket.on("debug", (data: {origin: {x: number, y: number, z: number}, direction: {x: number, y: number, z: number}, mobPosition: {x: number, y: number, z: number}, mobHitBoxPosition: {x: number, y: number, z: number}}) => {
+            const origin = new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z);
+            const direction = new THREE.Vector3(data.direction.x, data.direction.y, data.direction.z);
+            const mobPosition = new THREE.Vector3(data.mobPosition.x, data.mobPosition.y, data.mobPosition.z);
+            const mobHitBoxPosition = new THREE.Vector3(data.mobHitBoxPosition.x, data.mobHitBoxPosition.y, data.mobHitBoxPosition.z);
+            console.log("Debug:", data);
+
+            // const debugCharacter1 = new Enemy({ position: origin, scene: this.props.scene });
+
+            // const debugCharacter2 = new Enemy({ position: direction, scene: this.props.scene });
         });
     }
 

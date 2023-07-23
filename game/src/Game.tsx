@@ -7,12 +7,15 @@ import CurrentPlayerHandler from "./handlers/CurrentPlayerHandler";
 import OtherPlayersHandler from "./handlers/OtherPlayersHandler";
 import Grass from "./Grass";
 import Enemy from "./Enemy";
+import Mob from "./Mob";
 import WebSocketClass from "./WebSocket";
 
 import ChatBox , { ChatBoxRef, ChatMessage } from "./HUD/ChatBox";
 
 interface GameProps {
 }
+
+const debugLookAtLine = new THREE.Line3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0));
 
 export default class Game extends Component<GameProps> {
     public camera = new Camera({});
@@ -34,6 +37,7 @@ export default class Game extends Component<GameProps> {
         playerName: ""
     };
     public chatBoxRef = createRef<ChatBoxRef>();
+    public mob = new Mob({ scene: this.scene, position: new THREE.Vector3(0, 0, 0) });
     
     public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
     public otherPlayersHandler = new OtherPlayersHandler({ camera: this.camera.camera, scene: this.scene });
@@ -45,7 +49,8 @@ export default class Game extends Component<GameProps> {
         chatBoxRef: this.chatBoxRef,
         setPlayerNameState: (playerName: string) => {
             this.setState({ playerName: playerName });
-        }
+        },
+        mob: this.mob
     });
 
     handleSocketSpecialEvents() {
@@ -55,6 +60,8 @@ export default class Game extends Component<GameProps> {
         this.webSocket.newMessageListener();
         this.webSocket.playersPositionUpdatesListener();
         this.webSocket.playerRotationUpdateListener();
+        this.webSocket.mobPositionUpdatesListener();
+        this.webSocket.listenDebug();
         this.webSocket.disconnected();
     }
 
@@ -95,6 +102,13 @@ export default class Game extends Component<GameProps> {
         this.clock = new THREE.Clock();
 
         
+        // add debug line
+        const debugLineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
+        const debugLineGeometry = new THREE.BufferGeometry().setFromPoints([debugLookAtLine.start, debugLookAtLine.end]);
+        const debugLine = new THREE.Line(debugLineGeometry, debugLineMaterial);
+        // rename debug line
+        debugLine.name = "debugLine";
+        this.scene.add(debugLine);
         
         
         
@@ -164,6 +178,21 @@ export default class Game extends Component<GameProps> {
             document.body.requestPointerLock();
         }
         this.player.weapon.shoot();
+        this.webSocket.sendShoot();
+
+        // searcch for debug line
+        const debugLine = this.scene.getObjectByName("debugLine");
+        if (debugLine) {
+            // apply rotation to match lookAt
+            debugLine.rotation.y = this.camera.camera.rotation.y;
+            debugLine.rotation.x = this.camera.camera.rotation.x;
+            // set start and end points
+            debugLookAtLine.start = this.player.position;
+            debugLookAtLine.end = this.player.position.clone().add(this.player.getForwardVector().multiplyScalar(100));
+            // update debug line
+            // debugLine.geometry.setFromPoints([debugLookAtLine.start, debugLookAtLine.end]);
+        }
+
     }
 
     clickUpListener = (event: MouseEvent) => {
@@ -184,7 +213,9 @@ export default class Game extends Component<GameProps> {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
         
+        this.mob.update(delaTime);
         this.player.weapon.bobbleWeapon(delaTime);
+        
         // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
         this.renderer.render(this.scene, this.camera.camera);

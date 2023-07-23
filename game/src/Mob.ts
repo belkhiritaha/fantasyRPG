@@ -2,12 +2,12 @@ import { Component } from "react";
 import * as THREE from "three";
 import Character from "./loaders/Character";
 
-interface EnemyProps {
+interface MobProps {
     position: THREE.Vector3;
     scene: THREE.Scene;
 }
 
-export default class Enemy extends Component<EnemyProps> {
+export default class Mob extends Component<MobProps> {
     public character: Character;
     public position: THREE.Vector3;
     public direction: THREE.Vector3;
@@ -15,9 +15,9 @@ export default class Enemy extends Component<EnemyProps> {
     public height = 0;
     public name = '';
 
-    constructor(props: EnemyProps) {
+    constructor(props: MobProps) {
         super(props);
-        this.character = new Character({...props, modelPath: "Knight.glb" });
+        this.character = new Character({...props, modelPath: "Barbarian.glb" });
         this.position = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.velocity = new THREE.Vector3();
@@ -48,6 +48,7 @@ export default class Enemy extends Component<EnemyProps> {
     }
 
     setPosition(position: THREE.Vector3) {
+        // console.log("Set position:", position);
         this.position.copy(position);
         this.character.gltf?.position.copy(position);
     }

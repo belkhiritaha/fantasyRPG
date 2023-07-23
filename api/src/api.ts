@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import https from 'https';
 
 import cors from 'cors';
-import { initializeSocket, updatePlayerPositions } from './socketServer/socketServer';
+import { initializeSocket, updateMobPositions, updatePlayerPositions } from './socketServer/socketServer';
 import messageRouter from './routers/messageRouter';
 
 dotenv.config();
@@ -64,6 +64,7 @@ initializeSocket(io);
 const updateInterval = 7.8125; // 1000 ms / 128
 setInterval(() => {
     updatePlayerPositions(io);
+    updateMobPositions(io);
 }, updateInterval);
 
 
