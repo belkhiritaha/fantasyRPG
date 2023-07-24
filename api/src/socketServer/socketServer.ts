@@ -9,6 +9,7 @@ interface Player {
     lookAt: THREE.Vector3;
     hp: number;
     height: number;
+    hitBox: THREE.Mesh;
 }
 
 const groundPosY = -10;
@@ -25,6 +26,7 @@ const firstMob : Player = {
     lookAt: new THREE.Vector3(0, 0, 0),
     hp: 100,
     height: 2,
+    hitBox: new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined),
 }
 // const mobHitBox = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined);
 
@@ -35,7 +37,7 @@ export function initializeSocket(io: Server) {
         console.log('New WebSocket connection');
         const playerId = socket.id;
         const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
-        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1 };
+        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined) };
         socket.emit('initGameState', { id: playerId, players: players, name: name });
         
         socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].position, name: name });
@@ -74,17 +76,16 @@ export function initializeSocket(io: Server) {
             const range = 2;
             const damage = 10;
             const player = players[playerId];
-            const ray = new THREE.Raycaster(player.position, new THREE.Vector3().copy(player.lookAt).normalize());
+            const ray = new THREE.Raycaster(player.position, player.lookAt.normalize());
 
             
             for (const mobId in mobs) {
                 const mob = mobs[mobId];
-                const hitMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined);
-                hitMesh.position.copy(mob.position);
-                socket.emit("debug", { origin: player.position, direction: player.position.clone().add(player.lookAt.normalize().multiplyScalar(range)), mobPosition: mob.position, mobHitBoxPosition: hitMesh.position });
-                hitMesh.position.y += mob.height / 2;
-                const intersects = ray.intersectObject(hitMesh);
-                console.log(intersects);
+
+                socket.emit("debug", { origin: player.position, direction: player.position.clone().add(player.lookAt.normalize().multiplyScalar(range)), mobPosition: mob.position, mobHitBoxPosition: mob.hitBox.position });
+                const intersects = ray.intersectObject(mob.hitBox);
+                if (intersects[0]) console.log("intersection point", mob.hitBox.worldToLocal(intersects[0]?.point));
+                // console.log('mesh position', mob.hitBox.position);
             }
         });
 
@@ -151,7 +152,7 @@ export function updateMobPositions(io: Server) {
         return;
     }
 
-    // target the first player
+    // // target the first player
     const target = players[Object.keys(players)[0]];
 
     // move the mob towards the player
@@ -163,6 +164,9 @@ export function updateMobPositions(io: Server) {
     const deltaPosition = firstMob.velocity.clone().multiplyScalar(deltaTime * 10);
     firstMob.position.set(firstMob.position.x + deltaPosition.x, firstMob.position.y + deltaPosition.y, firstMob.position.z + deltaPosition.z);
     firstMob.velocity.addScaledVector(firstMob.velocity, damping);
+
+    firstMob.hitBox.position.set(firstMob.position.x, firstMob.position.y, firstMob.position.z);
+    // firstMob.hitBox.position.set(firstMob.position.x + 5, firstMob.position.y + 10, firstMob.position.z + 5);
 
     // mobHitBox.position.copy(firstMob.position);
 
