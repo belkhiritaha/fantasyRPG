@@ -178,6 +178,15 @@ export default class Game extends Component<GameProps> {
             document.body.requestPointerLock();
         }
         this.player.weapon.shoot();
+
+        const ray = new THREE.Raycaster(this.player.position, this.player.getForwardVector().normalize());
+        const intersects = ray.intersectObjects(this.scene.children, true);
+        // if object with name hitBox is hit
+        if (intersects.length > 0 && intersects[0].object.name === "hitBox") {
+            const hitBox = intersects[0].object;
+            console.log(hitBox);
+        }
+
         this.webSocket.sendShoot();
 
         // searcch for debug line
@@ -246,6 +255,7 @@ export default class Game extends Component<GameProps> {
         return (
             <div ref={this.mount}>
                 <ChatBox ref={this.chatBoxRef} playerName={this.state.playerName} />
+                <div id="crosshair" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "2px", height: "2px", backgroundColor: "white" }}></div>
             </div>
         );
     }

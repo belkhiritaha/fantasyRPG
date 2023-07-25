@@ -4,7 +4,6 @@ import messageModels from '../models/message.models';
 
 interface Player {
     name: string;
-    position: THREE.Vector3;
     velocity: THREE.Vector3;
     lookAt: THREE.Vector3;
     hp: number;
@@ -21,26 +20,31 @@ const mobs: { [id: string]: Player } = {};
 
 const firstMob : Player = {
     name: "Mob",
-    position: new THREE.Vector3(0, 0, 0),
     velocity: new THREE.Vector3(0, 0, 0),
     lookAt: new THREE.Vector3(0, 0, 0),
     hp: 100,
     height: 2,
-    hitBox: new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined),
+    hitBox: new THREE.Mesh(new THREE.BoxGeometry(5, 10, 5), new THREE.MeshBasicMaterial({ color: 0x00ff00 })),
 }
+
 // const mobHitBox = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined);
 
 mobs["1"] = firstMob;
+
+export const scene = new THREE.Scene();
+firstMob.hitBox.name = "hitBox";
+firstMob.hitBox.position.set(0, 0, 0);
+scene.add(firstMob.hitBox);
 
 export function initializeSocket(io: Server) {
     io.on('connection', (socket: Socket) => {
         console.log('New WebSocket connection');
         const playerId = socket.id;
         const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
-        players[playerId] = { position: new THREE.Vector3(), velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined) };
+        players[playerId] = { velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined) };
         socket.emit('initGameState', { id: playerId, players: players, name: name });
         
-        socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].position, name: name });
+        socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].hitBox.position, name: name });
 
         socket.on('movement', (data: { forwardVector: { x: number, y: number, z: number }, sideVector: { x: number, y: number, z: number }, deltaTime: number, keyStates: { [key: string]: boolean } }) => {
             const forwardVector = new THREE.Vector3(data.forwardVector.x, data.forwardVector.y, data.forwardVector.z);
@@ -67,25 +71,57 @@ export function initializeSocket(io: Server) {
 
         socket.on('rotation', (data: { lookAt: { x: number, y: number, z: number } }) => {
             players[playerId].lookAt = new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z);
-            const ray = new THREE.Raycaster(players[playerId].position, new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z));
+            const ray = new THREE.Raycaster(players[playerId].hitBox.position, new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z));
+
+            const hitBoxObject = scene.getObjectByName("hitBox");
+                if (hitBoxObject) {
+                    // console.log("hitBoxObject", hitBoxObject);
+                    hitBoxObject.position.set(firstMob.hitBox.position.x, firstMob.hitBox.position.y, firstMob.hitBox.position.z);
+                    // console.log("hitBoxObject position", hitBoxObject.position);
+                }
+            
 
             socket.broadcast.emit('playerRotationUpdate', { id: playerId, lookAt: players[playerId].lookAt });
         });
 
         socket.on('attack', () => {
             const range = 2;
-            const damage = 10;
+            // const damage = 10;
             const player = players[playerId];
-            const ray = new THREE.Raycaster(player.position, player.lookAt.normalize());
+            const ray = new THREE.Raycaster(player.hitBox.position, player.lookAt.normalize());
 
+            // console.log(scene.getObjectByName("hitBox")?.position);
             
             for (const mobId in mobs) {
                 const mob = mobs[mobId];
 
-                socket.emit("debug", { origin: player.position, direction: player.position.clone().add(player.lookAt.normalize().multiplyScalar(range)), mobPosition: mob.position, mobHitBoxPosition: mob.hitBox.position });
-                const intersects = ray.intersectObject(mob.hitBox);
-                if (intersects[0]) console.log("intersection point", mob.hitBox.worldToLocal(intersects[0]?.point));
+                // console.log("ray position", ray.ray.origin);
+                // console.log("ray direction", ray.ray.direction);
+
+
+                // console.log("distance", player.position.distanceTo(mob.position));
+                socket.emit("debug", { origin: player.hitBox.position, direction: player.hitBox.position.clone().add(player.lookAt.normalize().multiplyScalar(range)), mobPosition: mob.hitBox.position, mobHitBoxPosition: scene.getObjectByName("hitBox")?.position });
+                // const intersects = ray.intersectObject(mob.hitBox);
+                // console.log("intersects", intersects);
+                // if (intersects[0]) console.log("intersection point", mob.hitBox.worldToLocal(intersects[0]?.point));
+                // const hitBoxObject = scene.getObjectByName("hitBox");
+                // if (hitBoxObject) {
+                //     // console.log("hitBoxObject", hitBoxObject);
+                //     hitBoxObject.position.set(firstMob.position.x, firstMob.position.y, firstMob.position.z);
+                //     // console.log("hitBoxObject position", hitBoxObject.position);
+                // }
+                console.log(scene.children);
+
+                console.log("Player is looking at", player.lookAt.normalize());
+                const intersects = ray.intersectObjects(scene.children, true);
+                console.log("intersects", intersects);  
+                if (intersects[0]) {
+                    console.log("intersection obbject position", intersects[0]?.object.position);
+
+                    console.log("distance from mob to hitbox", mob.hitBox.position.distanceTo(scene.getObjectByName("hitBox")?.position ?? new THREE.Vector3()));
+                }
                 // console.log('mesh position', mob.hitBox.position);
+
             }
         });
 
@@ -113,12 +149,12 @@ export function updatePlayerPositions(io: Server) {
         player.velocity.addScaledVector(gravity, deltaTime);
         // Apply damping
         const deltaPosition = player.velocity.clone().multiplyScalar(deltaTime * 10);
-        player.position.add(deltaPosition);
+        player.hitBox.position.add(deltaPosition);
         player.velocity.addScaledVector(player.velocity, damping);
 
 
-        if (player.position.y < groundPosY) {
-            player.position.y = groundPosY;
+        if (player.hitBox.position.y < groundPosY) {
+            player.hitBox.position.y = groundPosY;
             player.velocity.y = 0;
         }
 
@@ -134,16 +170,16 @@ export function updatePlayerPositions(io: Server) {
     for (const playerId in players) {
         const player = players[playerId];
         playersToSend[playerId] = {
-            x: player.position.x,
-            y: player.position.y,
-            z: player.position.z,
+            x: player.hitBox.position.x,
+            y: player.hitBox.position.y,
+            z: player.hitBox.position.z,
         };
     }
 
     io.emit('playersPositionUpdates', playersToSend);
 }
 
-export function updateMobPositions(io: Server) {
+export function updateMobPositions(io: Server, scene: THREE.Scene) {
     // Adjust the movement speed factor as needed
     const movementSpeed = 0.1;
 
@@ -156,25 +192,34 @@ export function updateMobPositions(io: Server) {
     const target = players[Object.keys(players)[0]];
 
     // move the mob towards the player
-    firstMob.velocity.addScaledVector(target.position.clone().sub(firstMob.position).normalize(), deltaTime * 4);
+    firstMob.velocity.addScaledVector(target.hitBox.position.clone().sub(firstMob.hitBox.position).normalize(), deltaTime * 4);
 
     // Apply gravity
     firstMob.velocity.addScaledVector(gravity, deltaTime);
     // Apply damping
     const deltaPosition = firstMob.velocity.clone().multiplyScalar(deltaTime * 10);
-    firstMob.position.set(firstMob.position.x + deltaPosition.x, firstMob.position.y + deltaPosition.y, firstMob.position.z + deltaPosition.z);
+    firstMob.hitBox.position.set(firstMob.hitBox.position.x + deltaPosition.x, firstMob.hitBox.position.y + deltaPosition.y, firstMob.hitBox.position.z + deltaPosition.z);
+    firstMob.hitBox.updateMatrixWorld();
     firstMob.velocity.addScaledVector(firstMob.velocity, damping);
 
-    firstMob.hitBox.position.set(firstMob.position.x, firstMob.position.y, firstMob.position.z);
-    // firstMob.hitBox.position.set(firstMob.position.x + 5, firstMob.position.y + 10, firstMob.position.z + 5);
+
+    // scene.hitBox.position.set(firstMob.position.x, firstMob.position.y + 5, firstMob.position.z);
+    const hitBoxObject = scene.getObjectByName("hitBox");
+    if (hitBoxObject) {
+        // console.log("hitBoxObject", hitBoxObject);
+        hitBoxObject.position.set(firstMob.hitBox.position.x, firstMob.hitBox.position.y, firstMob.hitBox.position.z);
+        // console.log("hitBoxObject position", hitBoxObject.position);
+    }
+    // io.emit("debug", { origin: new THREE.Vector3(), direction: new THREE.Vector3(), mobPosition: firstMob.position, mobHitBoxPosition: scene.getObjectByName("hitBox")?.position });
+
 
     // mobHitBox.position.copy(firstMob.position);
 
 
-    if (firstMob.position.y < groundPosY) {
-        firstMob.position.y = groundPosY;
+    if (firstMob.hitBox.position.y < groundPosY) {
+        firstMob.hitBox.position.y = groundPosY;
         firstMob.velocity.y = 0;
     }
 
-    io.emit('mobPositionUpdate', { id: "1", position: firstMob.position });
+    io.emit('mobPositionUpdate', { id: "1", position: firstMob.hitBox.position });
 }

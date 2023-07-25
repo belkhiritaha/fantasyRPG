@@ -19,6 +19,8 @@ export default class Player extends Component<PlayerProps> {
     public weapon: Weapon;
     public group: THREE.Group;
 
+    public lookAtLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff0000 }));
+
     constructor(props: PlayerProps) {
         super(props);
         this.position = new THREE.Vector3();
@@ -26,6 +28,8 @@ export default class Player extends Component<PlayerProps> {
         this.velocity = new THREE.Vector3();
         this.weapon = new Weapon({ position: new THREE.Vector3(), scene: props.scene, player: this, camera: props.camera });
         this.group = new THREE.Group();
+
+        this.props.scene.add(this.group);
     }
 
     setPosition(position: THREE.Vector3) {
@@ -39,6 +43,17 @@ export default class Player extends Component<PlayerProps> {
         this.direction.normalize();
 
         return this.direction;
+    }
+
+    setLookAtLine() {
+        const forwardVector = this.getForwardVector();
+        const lookAtVector = forwardVector.clone().multiplyScalar(100);
+        const lookAtPoint = this.props.camera.position.clone().add(lookAtVector);
+        const positions = new Float32Array([
+            this.props.camera.position.x, this.props.camera.position.y, this.props.camera.position.z,
+            lookAtPoint.x, lookAtPoint.y, lookAtPoint.z
+        ]);
+        this.lookAtLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     }
 
     getSideVector(): THREE.Vector3 {

@@ -51,6 +51,11 @@ export default class Mob extends Component<MobProps> {
         // console.log("Set position:", position);
         this.position.copy(position);
         this.character.gltf?.position.copy(position);
+        // this.character.hitBox.position.set(position.x, position.y + 10, position.z);
+    }
+
+    moveHitBoxMesh(position: THREE.Vector3) {
+        this.character.hitBox.position.set(position.x, position.y, position.z);
     }
 
     // set z axis angle

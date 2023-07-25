@@ -21,6 +21,8 @@ export default class Character extends Component<CharacterProps> {
     public activeAction: THREE.AnimationAction;
     public lastAction: THREE.AnimationAction;
 
+    public hitBox = new THREE.Mesh(new THREE.BoxGeometry(5, 10, 5), new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true }));
+
 
     constructor(props: CharacterProps) {
         super(props);
@@ -67,6 +69,11 @@ export default class Character extends Component<CharacterProps> {
                     const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                     const plane = new THREE.Mesh(geometry, material);
                     plane.position.set(0, 3, 0);
+
+                    // gltf.scene.add( this.hitBox );
+                    this.hitBox.name = "hitBox";
+                    this.props.scene.add( this.hitBox );
+
                     gltf.scene.add(plane);
                 }
             }

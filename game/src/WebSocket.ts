@@ -107,7 +107,10 @@ class WebSocketClass extends Component<WebSocketProps> {
             const direction = new THREE.Vector3(data.direction.x, data.direction.y, data.direction.z);
             const mobPosition = new THREE.Vector3(data.mobPosition.x, data.mobPosition.y, data.mobPosition.z);
             const mobHitBoxPosition = new THREE.Vector3(data.mobHitBoxPosition.x, data.mobHitBoxPosition.y, data.mobHitBoxPosition.z);
+            this.props.mob.moveHitBoxMesh(mobHitBoxPosition);
             console.log("Debug:", data);
+
+            this.props.player.setLookAtLine();
 
             // const debugCharacter1 = new Enemy({ position: origin, scene: this.props.scene });
 
