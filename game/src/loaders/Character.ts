@@ -64,6 +64,9 @@ export default class Character extends Component<CharacterProps> {
                     this.idleAction.timeScale = 3;
                     this.idleAction.play();
 
+                    this.runAction = this.mixer.clipAction(gltf.animations[48]);
+                    this.attackAction = this.mixer.clipAction(gltf.animations[0]);
+
                     // hp bar
                     const geometry = new THREE.PlaneGeometry(1, 0.1);
                     const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -74,6 +77,10 @@ export default class Character extends Component<CharacterProps> {
                     this.hitBox.name = "hitBox";
                     this.props.scene.add( this.hitBox );
 
+                    this.runAction.clampWhenFinished = true;
+                    this.runAction.loop = THREE.LoopRepeat;
+                    this.runAction.setDuration(0.1);
+                    this.runAction.play();
                     gltf.scene.add(plane);
                 }
             }
@@ -81,9 +88,14 @@ export default class Character extends Component<CharacterProps> {
 
     }
 
-    rotateHeadX(angle: number) {
+    // set z axis angle
+    setYAxisAngle(yAxisAngle: number) {
+        this.gltf.rotation.y = yAxisAngle;
+    }
+    
+    setXAxisAngle(xAxisAngle: number) {
         const headBone = (this.gltf.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14];
-        headBone.rotation.x = angle;
+        headBone.rotation.x = xAxisAngle;
     }
 
     update(deltaTime: number) {

@@ -51,16 +51,7 @@ export default class Enemy extends Component<EnemyProps> {
         this.position.copy(position);
         this.character.gltf?.position.copy(position);
     }
-
-    // set z axis angle
-    setYAxisAngle(yAxisAngle: number) {
-        this.character.gltf.rotation.y = yAxisAngle;
-    }
-
-    setXAxisAngle(xAxisAngle: number) {
-        this.character.rotateHeadX(xAxisAngle);
-    }
-
+    
     removeFromScene() {
         this.props.scene.remove(this.character.gltf);
     }

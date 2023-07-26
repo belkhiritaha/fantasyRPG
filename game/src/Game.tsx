@@ -8,6 +8,7 @@ import OtherPlayersHandler from "./handlers/OtherPlayersHandler";
 import Grass from "./Grass";
 import Enemy from "./Enemy";
 import Mob from "./Mob";
+import HitText from "./effects/HitText";
 import WebSocketClass from "./WebSocket";
 
 import ChatBox , { ChatBoxRef, ChatMessage } from "./HUD/ChatBox";
@@ -38,6 +39,7 @@ export default class Game extends Component<GameProps> {
     };
     public chatBoxRef = createRef<ChatBoxRef>();
     public mob = new Mob({ scene: this.scene, position: new THREE.Vector3(0, 0, 0) });
+    public hitTextList: HitText[] = [];
     
     public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
     public otherPlayersHandler = new OtherPlayersHandler({ camera: this.camera.camera, scene: this.scene });
@@ -50,7 +52,8 @@ export default class Game extends Component<GameProps> {
         setPlayerNameState: (playerName: string) => {
             this.setState({ playerName: playerName });
         },
-        mob: this.mob
+        mob: this.mob,
+        hitTextList: this.hitTextList
     });
 
     handleSocketSpecialEvents() {
@@ -61,7 +64,8 @@ export default class Game extends Component<GameProps> {
         this.webSocket.playersPositionUpdatesListener();
         this.webSocket.playerRotationUpdateListener();
         this.webSocket.mobPositionUpdatesListener();
-        this.webSocket.listenDebug();
+        this.webSocket.mobHitListener();
+        // this.webSocket.listenDebug();
         this.webSocket.disconnected();
     }
 
@@ -221,9 +225,17 @@ export default class Game extends Component<GameProps> {
         for (const id in this.otherPlayersHandler.otherPlayers) {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
+        this.mob.character.update(delaTime);
         
-        this.mob.update(delaTime);
         this.player.weapon.bobbleWeapon(delaTime);
+        for (const hitText of this.hitTextList) {
+            if (!hitText) continue;
+            hitText.update(delaTime);
+            if (hitText.finished) {
+                this.scene.remove(hitText.hitText);
+                delete this.hitTextList[this.hitTextList.indexOf(hitText)];
+            }
+        }
         
         // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
