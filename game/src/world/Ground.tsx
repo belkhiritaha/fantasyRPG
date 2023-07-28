@@ -10,23 +10,31 @@ interface GroundProps {
 
 const PLAYER_RADIUS = 10;
 
-const DIMENSIONS = {
-    width: 100,
-    height: 100,
-    depth: 10,
-};
+// const DIMENSIONS = {
+//     width: 100,
+//     height: 100,
+//     depth: 10,
+// };
 
 export default class Ground extends React.Component<GroundProps> {
     public positions: THREE.Vector3[] = [];
     public mesh = new THREE.Mesh();
     public simplex = new SimplexNoise();
-    public geometry = new THREE.PlaneGeometry(100, 100, 10, 10);
     public material = new THREE.MeshLambertMaterial({
-        color: 0x33ff33,
+        color: 0x188018,
         side: THREE.DoubleSide,
         fog: true,
         // wireframe: true,
+        flatShading: true,
     });
+    public DIMENSIONS = {
+        width: 100,
+        height: 100,
+        segmentW: 10,
+        segmentH: 10,
+    };
+    public geometry = new THREE.PlaneGeometry(this.DIMENSIONS.width, this.DIMENSIONS.height, this.DIMENSIONS.segmentW, this.DIMENSIONS.segmentH);
+    public normals : THREE.Vector3[] = [];
 
     constructor(props: any) {
         super(props);
@@ -40,11 +48,13 @@ export default class Ground extends React.Component<GroundProps> {
             type: 'Ground',
         };        
         // use simplex noise to generate height
-        for (let i = 0; i < DIMENSIONS.width * DIMENSIONS.height; i++) {
-            const x = i % DIMENSIONS.width;
-            const y = Math.floor(i / DIMENSIONS.width);
-            const z = this.simplex.noise(x , y);
-            this.positions.push(new THREE.Vector3(x, y, z));
+        for (let i = 0; i < this.DIMENSIONS.segmentW * this.DIMENSIONS.segmentH; i++) {
+            const x = i % this.DIMENSIONS.segmentW;
+            const y = Math.floor(i / this.DIMENSIONS.segmentW);
+            const z = this.simplex.noise(x / 10 , y / 10) * 2;
+            const scope = this.DIMENSIONS.width / this.DIMENSIONS.segmentW;
+
+            this.positions.push(new THREE.Vector3(x * scope, z * scope, y * scope));
 
             // update geometry
             this.mesh.geometry.attributes.position.setZ(i, z);
@@ -53,18 +63,28 @@ export default class Ground extends React.Component<GroundProps> {
             this.mesh.geometry.attributes.normal.setZ(i, z);
         }
 
-        this.mesh.scale.x = 10;
-        this.mesh.scale.y = 20;
-        this.mesh.scale.z = 10;
-        // this.mesh.scale.y = PLAYER_RADIUS;
-        // this.mesh.scale.z = PLAYER_RADIUS;
+        // this.mesh.scale.x = 20;
+        // this.mesh.scale.y = 20;
+        // this.mesh.scale.z = 20;
+
 
         this.mesh.geometry.attributes.position.needsUpdate = true;
         // set lightMapIntensity to 1 to make the ground darker
         this.mesh.geometry.computeVertexNormals();
         // update world matrix
         this.mesh.updateMatrixWorld(true);
+
+        // get all vertex normals
+        for (let i = 0; i < this.mesh.geometry.attributes.normal.count; i++) {
+            const x = this.mesh.geometry.attributes.normal.getX(i);
+            const y = this.mesh.geometry.attributes.normal.getY(i);
+            const z = this.mesh.geometry.attributes.normal.getZ(i);
+            this.normals.push(new THREE.Vector3(x, y, z));
+        }
+
+        console.log(this.normals);
         this.props.scene.add(this.mesh);
+        console.log(this.positions);
 
         // const light = new THREE.AmbientLight(0x404040);
         // light.intensity = 0.2;

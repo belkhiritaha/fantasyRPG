@@ -104,7 +104,7 @@ export default class Game extends Component<GameProps> {
         // this.ground.name = "ground";
         // this.scene.add(this.ground);
         // this.grass.grassMesh.position.y = this.ground.position.y;
-        this.scene.add(this.grass.grassMesh);
+        // this.scene.add(this.grass.grassMesh);
         console.log(this.scene);
         this.clock = new THREE.Clock();
 
@@ -142,11 +142,11 @@ export default class Game extends Component<GameProps> {
             "test_front.png", "test_back.png"
         ]);
 
-        this.grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh });
+        // this.grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh, dimensions: this.ground2.DIMENSIONS });
         // this.grass.grassMesh.position.y = this.ground.position.y;
-        this.grass.grassMesh.position.x = this.player.position.x;
-        this.grass.grassMesh.position.z = this.player.position.z - 5;
-        this.scene.add(this.grass.grassMesh);
+        // this.grass.grassMesh.position.x = this.player.position.x;
+        // this.grass.grassMesh.position.z = this.player.position.z - 5;
+        // this.scene.add(this.grass.grassMesh);
     }
 
     controls = (deltaTime: number) => {
@@ -245,6 +245,7 @@ export default class Game extends Component<GameProps> {
         const intersects = ray.intersectObject(this.ground2.mesh, true);
         if (intersects.length > 0) {
             this.player.position.y = intersects[0].point.y + 1;
+            // console.log(this.player.position)
         }
 
         

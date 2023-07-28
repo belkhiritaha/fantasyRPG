@@ -128,7 +128,7 @@ class Grass extends Component<GrassProps> {
             // MESH
             /////////
 
-            const instanceNumber = 1000;
+            const instanceNumber = 100000;
             const dummy = new THREE.Object3D();
 
             const geometry = new THREE.PlaneGeometry( 0.1, 0.5, 1, 4 );
@@ -141,8 +141,8 @@ class Grass extends Component<GrassProps> {
             // Position and scale the grass blade instances randomly.
 
             for ( let i=0 ; i<instanceNumber ; i++ ) {
-                const randX = ( Math.random() - 0.5 ) * 10;
-                const randZ = ( Math.random() - 0.5 ) * 10;
+                const randX = - 50 + Math.random() * 100;
+                const randZ = - 50 + Math.random() * 100;
                 const ray = new THREE.Raycaster( new THREE.Vector3( randX, 100, randZ ), new THREE.Vector3( 0, -1, 0 ) );
                 const intersection = ray.intersectObject( this.props.ground );
                 if ( intersection ) {
