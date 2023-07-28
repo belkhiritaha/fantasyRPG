@@ -12,6 +12,7 @@ import HitText from "./effects/HitText";
 import WebSocketClass from "./WebSocket";
 
 import ChatBox , { ChatBoxRef, ChatMessage } from "./HUD/ChatBox";
+import Ground from "./world/Ground";
 
 interface GameProps {
 }
@@ -26,13 +27,14 @@ export default class Game extends Component<GameProps> {
     public keyStates: { [key: string]: boolean } = {};
     public requestID: number | null = null;
     public mount: RefObject<HTMLDivElement> = React.createRef();
-    public ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(100, 100, 50, 50),
-        new THREE.MeshBasicMaterial({ color: "rgb(95, 171, 91)" })
-        );
+    // public ground = new THREE.Mesh(
+    //     new THREE.PlaneGeometry(100, 100, 50, 50),
+    //     new THREE.MeshBasicMaterial({ color: "rgb(95, 171, 91)" })
+    //     );
     public player = new Player({ camera: this.camera.camera, scene: this.scene });
     public animationMixers: THREE.AnimationMixer[] = [];
-    public grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer });
+    public ground2 = new Ground({ scene: this.scene });
+    public grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh });
     state = {
         isTyping: false,
         playerName: ""
@@ -43,6 +45,7 @@ export default class Game extends Component<GameProps> {
     
     public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
     public otherPlayersHandler = new OtherPlayersHandler({ camera: this.camera.camera, scene: this.scene });
+    public pointLight = new THREE.PointLight(0xffffff, 1, 1000);
 
     public webSocket = new WebSocketClass({ 
         player: this.player,
@@ -95,12 +98,12 @@ export default class Game extends Component<GameProps> {
 
     sceneSetup() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.ground.rotation.x = - Math.PI / 2;
-        this.ground.position.y = -10;
+        // this.ground.rotation.x = - Math.PI / 2;
+        // this.ground.position.y = -10;
 
-        this.ground.name = "ground";
-        this.scene.add(this.ground);
-        this.grass.grassMesh.position.y = this.ground.position.y;
+        // this.ground.name = "ground";
+        // this.scene.add(this.ground);
+        // this.grass.grassMesh.position.y = this.ground.position.y;
         this.scene.add(this.grass.grassMesh);
         console.log(this.scene);
         this.clock = new THREE.Clock();
@@ -117,12 +120,11 @@ export default class Game extends Component<GameProps> {
         
         
         // add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0x808080, 1);
         this.scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(10, 10, 10);
-        this.scene.add(directionalLight);
+        this.pointLight.position.set(0, 10, 0);
+        this.scene.add(this.pointLight);
         
         
         this.scene.add(this.camera.camera);
@@ -140,8 +142,8 @@ export default class Game extends Component<GameProps> {
             "test_front.png", "test_back.png"
         ]);
 
-        this.grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer });
-        this.grass.grassMesh.position.y = this.ground.position.y;
+        this.grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh });
+        // this.grass.grassMesh.position.y = this.ground.position.y;
         this.grass.grassMesh.position.x = this.player.position.x;
         this.grass.grassMesh.position.z = this.player.position.z - 5;
         this.scene.add(this.grass.grassMesh);
@@ -226,6 +228,7 @@ export default class Game extends Component<GameProps> {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
         this.mob.character.update(delaTime);
+        this.pointLight.position.set(this.player.position.x, this.player.position.y + 100, this.player.position.z);
         
         this.player.weapon.bobbleWeapon(delaTime);
         for (const hitText of this.hitTextList) {
@@ -236,6 +239,14 @@ export default class Game extends Component<GameProps> {
                 delete this.hitTextList[this.hitTextList.indexOf(hitText)];
             }
         }
+
+        // project get ground2 mesh Y position at player position
+        const ray = new THREE.Raycaster(new THREE.Vector3(this.player.position.x, 100, this.player.position.z), new THREE.Vector3(0, -1, 0));
+        const intersects = ray.intersectObject(this.ground2.mesh, true);
+        if (intersects.length > 0) {
+            this.player.position.y = intersects[0].point.y + 1;
+        }
+
         
         // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 

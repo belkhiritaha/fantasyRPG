@@ -32,9 +32,14 @@ export default class Player extends Component<PlayerProps> {
         this.props.scene.add(this.group);
     }
 
-    setPosition(position: THREE.Vector3) {
-        this.position.copy(position);
-        this.props.camera.position.copy(position.clone().add(new THREE.Vector3(0, this.height, 0)));
+    setPositionX(x: number) {
+        this.position.copy(new THREE.Vector3(x, this.position.y, this.position.z));
+        this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
+    }
+
+    setPositionZ(z: number) {
+        this.position.copy(new THREE.Vector3(this.position.x, this.position.y, z));
+        this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
     }
 
     getForwardVector(): THREE.Vector3 {

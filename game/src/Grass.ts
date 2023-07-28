@@ -5,12 +5,15 @@ interface GrassProps {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
+    ground: THREE.Mesh;
 }
 
 class Grass extends Component<GrassProps> {
     private canvasRef: React.RefObject<HTMLCanvasElement>;
     public grassMesh: THREE.InstancedMesh;
     public leavesMaterial: THREE.ShaderMaterial | null = null;
+    public frustum = new THREE.Frustum();
+    public projectionMatrix = new THREE.Matrix4();
 
     constructor(props: GrassProps) {
         super(props);
@@ -125,7 +128,7 @@ class Grass extends Component<GrassProps> {
             // MESH
             /////////
 
-            const instanceNumber = 100000;
+            const instanceNumber = 1000;
             const dummy = new THREE.Object3D();
 
             const geometry = new THREE.PlaneGeometry( 0.1, 0.5, 1, 4 );
@@ -138,18 +141,31 @@ class Grass extends Component<GrassProps> {
             // Position and scale the grass blade instances randomly.
 
             for ( let i=0 ; i<instanceNumber ; i++ ) {
-
-                dummy.position.set(
-                ( Math.random() - 0.5 ) * 100,
-                0,
-                ( Math.random() - 0.5 ) * 100);
-            
+                const randX = ( Math.random() - 0.5 ) * 10;
+                const randZ = ( Math.random() - 0.5 ) * 10;
+                const ray = new THREE.Raycaster( new THREE.Vector3( randX, 100, randZ ), new THREE.Vector3( 0, -1, 0 ) );
+                const intersection = ray.intersectObject( this.props.ground );
+                if ( intersection ) {
+                    dummy.position.copy( intersection[0].point );
+                } else {
+                    dummy.position.set( randX, 0, randZ );
+                }
                 dummy.scale.setScalar( 0.5 + Math.random() * 0.5 );
-                
                 dummy.rotation.y = Math.random() * Math.PI;
-                
                 dummy.updateMatrix();
-                instancedMesh.setMatrixAt( i, dummy.matrix );
+                instancedMesh.setMatrixAt( i, dummy.matrix ); 
+
+                // dummy.position.set(
+                // ( Math.random() - 0.5 ) * 100,
+                // 0,
+                // ( Math.random() - 0.5 ) * 100);
+            
+                // dummy.scale.setScalar( 0.5 + Math.random() * 0.5 );
+                
+                // dummy.rotation.y = Math.random() * Math.PI;
+                
+                // dummy.updateMatrix();
+                // instancedMesh.setMatrixAt( i, dummy.matrix );
 
             }
 
@@ -157,13 +173,28 @@ class Grass extends Component<GrassProps> {
       }
 
       animate(delta: number) {
+        this.projectionMatrix.multiplyMatrices( this.props.camera.projectionMatrix, this.props.camera.matrixWorldInverse );
+        this.frustum.setFromProjectionMatrix( this.projectionMatrix );
 
-        // Hand a time variable to vertex shader for wind displacement.
-        if ( this.leavesMaterial ) {
-            this.leavesMaterial.uniforms.time.value = delta;
-            this.leavesMaterial.uniformsNeedUpdate = true;
+        // // Hand a time variable to vertex shader for wind displacement.
+        // if ( this.leavesMaterial ) {
+        //     this.leavesMaterial.uniforms.time.value = delta;
+        //     this.leavesMaterial.uniformsNeedUpdate = true;
 
+        // }
+
+        // // Update the frustum culling of the grass blades.
+        if (this.frustum.intersectsObject(this.grassMesh)) {
+            if ( this.leavesMaterial ) {
+                this.leavesMaterial.uniforms.time.value = delta;
+                this.leavesMaterial.uniformsNeedUpdate = true;
+            }
+            this.grassMesh.visible = true;
+        } else {
+            this.grassMesh.visible = false;
         }
+
+
     
     };
 }
