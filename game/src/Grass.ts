@@ -3,42 +3,31 @@ import * as THREE from 'three';
 
 interface GrassProps {
     scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
     ground: THREE.Mesh;
+    dimensions: { width: number; height: number; segmentW: number; segmentH: number };
 }
 
 class Grass extends Component<GrassProps> {
     private canvasRef: React.RefObject<HTMLCanvasElement>;
-    public grassMesh: THREE.InstancedMesh;
+    public grassMesh: THREE.InstancedMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.1, 0.5, 1, 4), new THREE.MeshBasicMaterial({ color: 0x00ff00 }), 1000);
     public leavesMaterial: THREE.ShaderMaterial | null = null;
     public frustum = new THREE.Frustum();
     public projectionMatrix = new THREE.Matrix4();
+    public grassGrid: { [key: string]: THREE.InstancedMesh } = {};
+    public gridWidth = 500;
+    public grassCount = 500000;
+    public grassPositions: THREE.Vector3[] = [];
 
     constructor(props: GrassProps) {
         super(props);
         this.canvasRef = React.createRef();
-        this.grassMesh = this.createGrass();
+        
+        this.grassMesh = this.createGrass(0, 0);
         this.props.scene.add(this.grassMesh);
-        // this.animate();
+
     }
 
-    componentDidMount() {
-        window.addEventListener('resize', this.handleWindowResize);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('resize', this.handleWindowResize);
-    }
-
-    handleWindowResize = () => {
-        const { innerWidth, innerHeight } = window;
-        this.props.camera.aspect = innerWidth / innerHeight;
-        this.props.camera.updateProjectionMatrix();
-        this.props.renderer.setSize(innerWidth, innerHeight);
-    };
-
-    createGrass() {
+    createGrass(xPos: number, zPos: number) {
         let simpleNoise = `
             float N (vec2 st) { // https://thebookofshaders.com/10/
                 return fract( sin( dot( st.xy, vec2(12.9898,78.233 ) ) ) *  43758.5453123);
@@ -99,7 +88,7 @@ class Grass extends Component<GrassProps> {
                 }
             `;
 
-            const fragmentShader = `
+        const fragmentShader = `
             varying vec2 vUv;
             
             void main() {
@@ -109,94 +98,90 @@ class Grass extends Component<GrassProps> {
             }
             `;
 
-            const uniforms = {
-                time: {
+        const uniforms = {
+            time: {
                 value: 0
             }
-            }
+        }
 
-            const leavesMaterial = new THREE.ShaderMaterial({
-                vertexShader,
+        const leavesMaterial = new THREE.ShaderMaterial({
+            vertexShader,
             fragmentShader,
             uniforms,
             side: THREE.DoubleSide
-            });
+        });
 
-            this.leavesMaterial = leavesMaterial;
+        this.leavesMaterial = leavesMaterial;
 
-            /////////
-            // MESH
-            /////////
+        /////////
+        // MESH
+        /////////
 
-            const instanceNumber = 100000;
-            const dummy = new THREE.Object3D();
+        const instanceNumber = this.grassCount;
+        const dummy = new THREE.Object3D();
 
-            const geometry = new THREE.PlaneGeometry( 0.1, 0.5, 1, 4 );
-            geometry.translate( 0, 0.5, 0 ); // move grass blade geometry lowest point at 0.
+        const geometry = new THREE.PlaneGeometry(0.1, 0.5, 1, 4);
+        geometry.translate(0, 0.5, 0); // move grass blade geometry lowest point at 0.
 
-            const instancedMesh = new THREE.InstancedMesh( geometry, leavesMaterial, instanceNumber );
+        const instancedMesh = new THREE.InstancedMesh(geometry, leavesMaterial, instanceNumber);
 
-            this.props.scene.add( instancedMesh );
+        this.props.scene.add(instancedMesh);
 
-            // Position and scale the grass blade instances randomly.
+        // Position and scale the grass blade instances randomly.
 
-            for ( let i=0 ; i<instanceNumber ; i++ ) {
-                const randX = - 50 + Math.random() * 100;
-                const randZ = - 50 + Math.random() * 100;
-                const ray = new THREE.Raycaster( new THREE.Vector3( randX, 100, randZ ), new THREE.Vector3( 0, -1, 0 ) );
-                const intersection = ray.intersectObject( this.props.ground );
-                if ( intersection ) {
-                    dummy.position.copy( intersection[0].point );
-                } else {
-                    dummy.position.set( randX, 0, randZ );
-                }
-                dummy.scale.setScalar( 0.5 + Math.random() * 0.5 );
+        for (let i = 0; i < instanceNumber; i++) {
+            // const randX = - areaWidth / 2 + Math.random() * areaWidth;
+            // const randZ = - areaWidth / 2 + Math.random() * areaWidth;
+            const randX = - this.gridWidth / 2 + Math.random() * this.gridWidth + xPos;
+            const randZ = - this.gridWidth / 2 + Math.random() * this.gridWidth + zPos;
+            const ray = new THREE.Raycaster(new THREE.Vector3(randX, 100, randZ), new THREE.Vector3(0, -1, 0));
+            const intersection = ray.intersectObject(this.props.ground);
+            if (intersection && intersection.length) {
+                const point = intersection[0].point;
+                dummy.position.set(point.x, point.y, point.z);
                 dummy.rotation.y = Math.random() * Math.PI;
+                dummy.scale.set(1, Math.random() * 2 + 1, 1);
                 dummy.updateMatrix();
-                instancedMesh.setMatrixAt( i, dummy.matrix ); 
-
-                // dummy.position.set(
-                // ( Math.random() - 0.5 ) * 100,
-                // 0,
-                // ( Math.random() - 0.5 ) * 100);
-            
-                // dummy.scale.setScalar( 0.5 + Math.random() * 0.5 );
-                
-                // dummy.rotation.y = Math.random() * Math.PI;
-                
-                // dummy.updateMatrix();
-                // instancedMesh.setMatrixAt( i, dummy.matrix );
-
+                instancedMesh.setMatrixAt(i, dummy.matrix);
             }
-
-            return instancedMesh;
-      }
-
-      animate(delta: number) {
-        this.projectionMatrix.multiplyMatrices( this.props.camera.projectionMatrix, this.props.camera.matrixWorldInverse );
-        this.frustum.setFromProjectionMatrix( this.projectionMatrix );
-
-        // // Hand a time variable to vertex shader for wind displacement.
-        // if ( this.leavesMaterial ) {
-        //     this.leavesMaterial.uniforms.time.value = delta;
-        //     this.leavesMaterial.uniformsNeedUpdate = true;
-
-        // }
-
-        // // Update the frustum culling of the grass blades.
-        if (this.frustum.intersectsObject(this.grassMesh)) {
-            if ( this.leavesMaterial ) {
-                this.leavesMaterial.uniforms.time.value = delta;
-                this.leavesMaterial.uniformsNeedUpdate = true;
-            }
-            this.grassMesh.visible = true;
-        } else {
-            this.grassMesh.visible = false;
         }
 
+       
 
-    
+        return instancedMesh;
+    }
+
+    animate(delta: number) {
+        if (this.leavesMaterial) {
+            this.leavesMaterial.uniforms.time.value = delta;
+            this.leavesMaterial.uniformsNeedUpdate = true;
+        }
     };
+
+    // updateGrids(playerPos: THREE.Vector3) {
+    //     const playerChunkX = Math.floor(playerPos.x / this.gridWidth);
+    //     const playerChunkZ = Math.floor(playerPos.z / this.gridWidth);
+
+    //     let newGrassGrid: { [key: string]: THREE.InstancedMesh } = {};
+    //     for (let i = playerChunkX - this.chunkDistance; i <= playerChunkX + this.chunkDistance; i++) {
+    //         for (let j = playerChunkZ - this.chunkDistance; j <= playerChunkZ + this.chunkDistance; j++) {
+    //             const key = `${i},${j}`;
+    //             if (this.grassGrid[key]) {
+    //                 newGrassGrid[key] = this.grassGrid[key];
+    //             } else {
+    //                 newGrassGrid[key] = this.createGrass(i * this.gridWidth, j * this.gridWidth);
+    //             }
+    //         }
+    //     }
+
+    //     for (let key in this.grassGrid) {
+    //         if (!newGrassGrid[key]) {
+    //             this.props.scene.remove(this.grassGrid[key]);
+    //         }
+    //     }
+
+    //     this.grassGrid = newGrassGrid;
+    // }
 }
 
 export default Grass;

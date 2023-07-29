@@ -27,14 +27,11 @@ export default class Game extends Component<GameProps> {
     public keyStates: { [key: string]: boolean } = {};
     public requestID: number | null = null;
     public mount: RefObject<HTMLDivElement> = React.createRef();
-    // public ground = new THREE.Mesh(
-    //     new THREE.PlaneGeometry(100, 100, 50, 50),
-    //     new THREE.MeshBasicMaterial({ color: "rgb(95, 171, 91)" })
-    //     );
+
     public player = new Player({ camera: this.camera.camera, scene: this.scene });
     public animationMixers: THREE.AnimationMixer[] = [];
     public ground2 = new Ground({ scene: this.scene });
-    public grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh });
+    // public grass = new Grass({ scene: this.scene, ground: this.ground2.mesh, dimensions: this.ground2.DIMENSIONS });
     state = {
         isTyping: false,
         playerName: ""
@@ -45,7 +42,7 @@ export default class Game extends Component<GameProps> {
     
     public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
     public otherPlayersHandler = new OtherPlayersHandler({ camera: this.camera.camera, scene: this.scene });
-    public pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+    public pointLight = new THREE.PointLight(0xffffff, 1);
 
     public webSocket = new WebSocketClass({ 
         player: this.player,
@@ -98,35 +95,15 @@ export default class Game extends Component<GameProps> {
 
     sceneSetup() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        // this.ground.rotation.x = - Math.PI / 2;
-        // this.ground.position.y = -10;
-
-        // this.ground.name = "ground";
-        // this.scene.add(this.ground);
-        // this.grass.grassMesh.position.y = this.ground.position.y;
-        // this.scene.add(this.grass.grassMesh);
-        console.log(this.scene);
         this.clock = new THREE.Clock();
 
-        
-        // add debug line
-        const debugLineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
-        const debugLineGeometry = new THREE.BufferGeometry().setFromPoints([debugLookAtLine.start, debugLookAtLine.end]);
-        const debugLine = new THREE.Line(debugLineGeometry, debugLineMaterial);
-        // rename debug line
-        debugLine.name = "debugLine";
-        this.scene.add(debugLine);
-        
-        
-        
         // add lights
-        const ambientLight = new THREE.AmbientLight(0x808080, 1);
+        const ambientLight = new THREE.AmbientLight(0x808080, 0.5);
         this.scene.add(ambientLight);
         
         this.pointLight.position.set(0, 10, 0);
         this.scene.add(this.pointLight);
-        
-        
+                
         this.scene.add(this.camera.camera);
 
         this.webSocket.connect();
@@ -141,12 +118,6 @@ export default class Game extends Component<GameProps> {
             "test_top.png", "test_bottom.png",
             "test_front.png", "test_back.png"
         ]);
-
-        // this.grass = new Grass({ scene: this.scene, camera: this.camera.camera, renderer: this.renderer, ground: this.ground2.mesh, dimensions: this.ground2.DIMENSIONS });
-        // this.grass.grassMesh.position.y = this.ground.position.y;
-        // this.grass.grassMesh.position.x = this.player.position.x;
-        // this.grass.grassMesh.position.z = this.player.position.z - 5;
-        // this.scene.add(this.grass.grassMesh);
     }
 
     controls = (deltaTime: number) => {
@@ -171,7 +142,6 @@ export default class Game extends Component<GameProps> {
 
                 const lookAt = new THREE.Vector3(0, 0, -1);
                 lookAt.applyQuaternion(this.camera.camera.quaternion);
-                const yAxisAngle = Math.atan2(lookAt.x, lookAt.z);
                 this.webSocket.sendRotation({
                     lookAt: lookAt,
                 });
@@ -185,29 +155,7 @@ export default class Game extends Component<GameProps> {
         }
         this.player.weapon.shoot();
 
-        const ray = new THREE.Raycaster(this.player.position, this.player.getForwardVector().normalize());
-        const intersects = ray.intersectObjects(this.scene.children, true);
-        // if object with name hitBox is hit
-        if (intersects.length > 0 && intersects[0].object.name === "hitBox") {
-            const hitBox = intersects[0].object;
-            console.log(hitBox);
-        }
-
         this.webSocket.sendShoot();
-
-        // searcch for debug line
-        const debugLine = this.scene.getObjectByName("debugLine");
-        if (debugLine) {
-            // apply rotation to match lookAt
-            debugLine.rotation.y = this.camera.camera.rotation.y;
-            debugLine.rotation.x = this.camera.camera.rotation.x;
-            // set start and end points
-            debugLookAtLine.start = this.player.position;
-            debugLookAtLine.end = this.player.position.clone().add(this.player.getForwardVector().multiplyScalar(100));
-            // update debug line
-            // debugLine.geometry.setFromPoints([debugLookAtLine.start, debugLookAtLine.end]);
-        }
-
     }
 
     clickUpListener = (event: MouseEvent) => {
@@ -228,7 +176,7 @@ export default class Game extends Component<GameProps> {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
         this.mob.character.update(delaTime);
-        this.pointLight.position.set(this.player.position.x, this.player.position.y + 100, this.player.position.z);
+        this.pointLight.position.set(this.player.position.x, this.player.position.y + 1000 , this.player.position.z);
         
         this.player.weapon.bobbleWeapon(delaTime);
         for (const hitText of this.hitTextList) {
@@ -240,19 +188,12 @@ export default class Game extends Component<GameProps> {
             }
         }
 
-        // project get ground2 mesh Y position at player position
-        const ray = new THREE.Raycaster(new THREE.Vector3(this.player.position.x, 100, this.player.position.z), new THREE.Vector3(0, -1, 0));
-        const intersects = ray.intersectObject(this.ground2.mesh, true);
-        if (intersects.length > 0) {
-            this.player.position.y = intersects[0].point.y + 1;
-            // console.log(this.player.position)
-        }
-
         
         // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
         this.renderer.render(this.scene, this.camera.camera);
-        this.grass.animate(this.clock.getElapsedTime());
+        this.ground2.grass?.animate(this.clock.getElapsedTime());
+        // this.grass.updateGrids(this.player.position);
         this.requestID = window.requestAnimationFrame(this.startAnimationLoop.bind(this));
 
         for (const mixer of this.animationMixers) {

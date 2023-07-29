@@ -42,6 +42,16 @@ export default class Player extends Component<PlayerProps> {
         this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
     }
 
+    setPositionY(y: number) {
+        this.position.copy(new THREE.Vector3(this.position.x, y, this.position.z));
+        this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
+    }
+
+    setPosition(position: THREE.Vector3) {
+        this.position.copy(position);
+        this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
+    }
+
     getForwardVector(): THREE.Vector3 {
         this.props.camera.getWorldDirection(this.direction);
         this.direction.y = 0;
@@ -50,28 +60,11 @@ export default class Player extends Component<PlayerProps> {
         return this.direction;
     }
 
-    setLookAtLine() {
-        const forwardVector = this.getForwardVector();
-        const lookAtVector = forwardVector.clone().multiplyScalar(100);
-        const lookAtPoint = this.props.camera.position.clone().add(lookAtVector);
-        const positions = new Float32Array([
-            this.props.camera.position.x, this.props.camera.position.y, this.props.camera.position.z,
-            lookAtPoint.x, lookAtPoint.y, lookAtPoint.z
-        ]);
-        this.lookAtLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    }
-
     getSideVector(): THREE.Vector3 {
         const sideVector = this.getForwardVector().clone();
         sideVector.cross(this.props.camera.up);
 
         return sideVector;
-        // this.props.camera.getWorldDirection(this.direction);
-        // this.direction.y = 0;
-        // this.direction.normalize();
-        // this.direction.cross(this.props.camera.up);
-
-        // return this.direction
     }
 
     render() {

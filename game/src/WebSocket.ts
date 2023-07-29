@@ -66,8 +66,7 @@ class WebSocketClass extends Component<WebSocketProps> {
         this.websocket.on("playersPositionUpdates", (data: { [id: string]: { x: number, y: number, z: number } }) => {
             for (const id in data) {
                 if (id === this.id) {
-                    this.props.player.setPositionX(data[id].x);
-                    this.props.player.setPositionZ(data[id].z);
+                    this.props.player.setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
                 }
                 if (this.props.otherPlayersHandler.otherPlayers[id]) {
                     this.props.otherPlayersHandler.otherPlayers[id].setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise';
 import * as React from 'react';
 import Player from '../Player';
+import Grass from '../Grass';
 
 interface GroundProps {
     scene: THREE.Scene;
@@ -28,13 +29,14 @@ export default class Ground extends React.Component<GroundProps> {
         flatShading: true,
     });
     public DIMENSIONS = {
-        width: 100,
-        height: 100,
+        width: 500,
+        height: 500,
         segmentW: 10,
         segmentH: 10,
     };
     public geometry = new THREE.PlaneGeometry(this.DIMENSIONS.width, this.DIMENSIONS.height, this.DIMENSIONS.segmentW, this.DIMENSIONS.segmentH);
     public normals : THREE.Vector3[] = [];
+    public grass : Grass;
 
     constructor(props: any) {
         super(props);
@@ -46,31 +48,40 @@ export default class Ground extends React.Component<GroundProps> {
         this.mesh.name = 'Ground';
         this.mesh.userData = {
             type: 'Ground',
-        };        
-        // use simplex noise to generate height
-        for (let i = 0; i < this.DIMENSIONS.segmentW * this.DIMENSIONS.segmentH; i++) {
-            const x = i % this.DIMENSIONS.segmentW;
-            const y = Math.floor(i / this.DIMENSIONS.segmentW);
-            const z = this.simplex.noise(x / 10 , y / 10) * 2;
-            const scope = this.DIMENSIONS.width / this.DIMENSIONS.segmentW;
-
-            this.positions.push(new THREE.Vector3(x * scope, z * scope, y * scope));
-
-            // update geometry
-            this.mesh.geometry.attributes.position.setZ(i, z);
-
-            // update bump map
-            this.mesh.geometry.attributes.normal.setZ(i, z);
-        }
-
-        // this.mesh.scale.x = 20;
-        // this.mesh.scale.y = 20;
-        // this.mesh.scale.z = 20;
-
-
-        this.mesh.geometry.attributes.position.needsUpdate = true;
-        // set lightMapIntensity to 1 to make the ground darker
+        };
+        // load texture
+        const loader = new THREE.TextureLoader();
+        const texture = loader.load('/textures/grass.jpg');
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(this.DIMENSIONS.width / 50, this.DIMENSIONS.height / 50);
+        this.material.map = texture;
+        this.material.needsUpdate = true;
         this.mesh.geometry.computeVertexNormals();
+
+        fetch('vertices.json').then(res => res.json()).then((verticesCoords: THREE.Vector3[]) => {
+            for (let i = 0; i < verticesCoords.length; i++) {
+                const x = verticesCoords[i].x;
+                const y = verticesCoords[i].y;
+                const z = verticesCoords[i].z;
+                const scope = this.DIMENSIONS.width / this.DIMENSIONS.segmentW;
+
+                this.positions.push(new THREE.Vector3(x * scope, z * scope, y * scope));
+
+                // update geometry
+                this.mesh.geometry.attributes.position.setZ(i, z);
+
+                // update bump map
+                this.mesh.geometry.attributes.normal.setZ(i, z);
+            }
+            this.mesh.geometry.attributes.position.needsUpdate = true;
+            this.mesh.geometry.attributes.normal.needsUpdate = true;
+            this.mesh.geometry.computeVertexNormals();
+            console.log("finished loading vertices")
+            this.grass = new Grass({ scene: this.props.scene, ground: this.mesh, dimensions: this.DIMENSIONS});
+            // this.props.scene.add(this.grass.calculateGrassPositions());
+        });
+
         // update world matrix
         this.mesh.updateMatrixWorld(true);
 

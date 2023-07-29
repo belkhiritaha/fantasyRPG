@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import express from "express";
 
-import messageModels from "../models/message.models";
-import { io } from "../api";
+import messageModels from "../models/message.models.js";
+import { io } from "../api.js";
 
 const messageRouter = express.Router();
 

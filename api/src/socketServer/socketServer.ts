@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import * as THREE from 'three';
-import messageModels from '../models/message.models';
+import messageModels from '../models/message.models.js';
+import { ground } from '../api.js';
 
 interface Player {
     name: string;
@@ -13,7 +14,6 @@ interface Player {
     isJumping: boolean;
 }
 
-const groundPosY = -10;
 const adjectives = ["Whimsical","Bubbly","Zany","Quirky","Wacky","Goofy","Cheeky","Kooky","Silly","Bouncy","Peculiar","Zesty","Fuzzy","Jovial","Jolly","Boisterous","Witty","Funky","Spiffy","Zippy"];
 const animals = ["Penguin","Cheetah","Sloth","Kangaroo","Lemur","Hippo","Narwhal","Platypus","Chinchilla","Meerkat","Quokka","Raccoon","Alpaca","Hedgehog","Llama","Pufferfish","Axolotl","Capybara","Orangutan","Wombat"];
 
@@ -46,6 +46,7 @@ export function initializeSocket(io: Server) {
         const playerId = socket.id;
         const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
         players[playerId] = { velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined), isMoving: false, isJumping: false };
+        players[playerId].hitBox.position.set(1, 20, 2);
         socket.emit('initGameState', { id: playerId, players: players, name: name });
         
         socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].hitBox.position, name: name });
@@ -142,6 +143,14 @@ export function updatePlayerPositions(io: Server) {
         player.hitBox.position.add(deltaPosition);
         player.velocity.addScaledVector(player.velocity, damping);
 
+        let groundPosY = 0;
+        const ray = new THREE.Raycaster(new THREE.Vector3(player.hitBox.position.x, player.hitBox.position.y, player.hitBox.position.z), new THREE.Vector3(0, -1, 0));
+        const intersects = ray.intersectObject(ground);
+        if (intersects[0]) {
+            groundPosY = intersects[0].point.z;
+            console.log(intersects[0].point);
+        }
+
         if (player.hitBox.position.y < groundPosY) {
             player.hitBox.position.y = groundPosY;
             player.velocity.y = 0;
@@ -192,6 +201,13 @@ export function updateMobPositions(io: Server, scene: THREE.Scene) {
         hitBoxObject.position.set(firstMob.hitBox.position.x, firstMob.hitBox.position.y, firstMob.hitBox.position.z);
     }
     
+    let groundPosY = 0;
+    const ray = new THREE.Raycaster(firstMob.hitBox.position, new THREE.Vector3(0, -1, 0));
+    const intersects = ray.intersectObject(ground);
+    if (intersects[0]) {
+        groundPosY = intersects[0].point.y;
+    }
+
     if (firstMob.hitBox.position.y < groundPosY) {
         firstMob.hitBox.position.y = groundPosY;
         firstMob.velocity.y = 0;
