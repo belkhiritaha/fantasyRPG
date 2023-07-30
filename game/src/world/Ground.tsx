@@ -41,8 +41,9 @@ export default class Ground extends React.Component<GroundProps> {
     constructor(props: any) {
         super(props);
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.rotateX(Math.PI / 2);
-        this.mesh.position.y = -20;
+        this.mesh.rotateX(3 * Math.PI / 2);
+        this.mesh.rotateZ(Math.PI / 2);
+        // this.mesh.position.y = -20;
         this.mesh.receiveShadow = true;
         this.mesh.castShadow = true;
         this.mesh.name = 'Ground';
@@ -60,10 +61,10 @@ export default class Ground extends React.Component<GroundProps> {
         this.mesh.geometry.computeVertexNormals();
 
         fetch('vertices.json').then(res => res.json()).then((verticesCoords: THREE.Vector3[]) => {
-            for (let i = 0; i < verticesCoords.length; i++) {
-                const x = verticesCoords[i].x;
-                const y = verticesCoords[i].y;
-                const z = verticesCoords[i].z;
+            for (let i = 0; i < this.mesh.geometry.attributes.position.count; i++) {
+                const x = this.mesh.geometry.attributes.position.getX(i);
+                const y = this.mesh.geometry.attributes.position.getY(i);
+                const z = verticesCoords.find((v) => v.x === x && v.y === y)!.z;
                 const scope = this.DIMENSIONS.width / this.DIMENSIONS.segmentW;
 
                 this.positions.push(new THREE.Vector3(x * scope, z * scope, y * scope));
@@ -83,7 +84,7 @@ export default class Ground extends React.Component<GroundProps> {
         });
 
         // update world matrix
-        this.mesh.updateMatrixWorld(true);
+        // this.mesh.updateMatrix();
 
         // get all vertex normals
         for (let i = 0; i < this.mesh.geometry.attributes.normal.count; i++) {

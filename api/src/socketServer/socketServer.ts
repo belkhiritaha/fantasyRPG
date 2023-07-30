@@ -144,18 +144,22 @@ export function updatePlayerPositions(io: Server) {
         player.velocity.addScaledVector(player.velocity, damping);
 
         let groundPosY = 0;
-        const ray = new THREE.Raycaster(new THREE.Vector3(player.hitBox.position.x, player.hitBox.position.y, player.hitBox.position.z), new THREE.Vector3(0, -1, 0));
+        // console.log("player position: ", player.hitBox.position);
+        const ray = new THREE.Raycaster(new THREE.Vector3(player.hitBox.position.x, player.hitBox.position.z, 100), new THREE.Vector3(0, 0, -1));
         const intersects = ray.intersectObject(ground);
         if (intersects[0]) {
             groundPosY = intersects[0].point.z;
-            console.log(intersects[0].point);
+            player.hitBox.position.y = groundPosY;
+            console.log("player position: ", player.hitBox.position);
+            console.log("ground position: ", intersects[0].point);
+            // console.log("ground point position: ", intersects[0].point);
         }
 
-        if (player.hitBox.position.y < groundPosY) {
-            player.hitBox.position.y = groundPosY;
-            player.velocity.y = 0;
-            player.isJumping = false;
-        }
+        // if (player.hitBox.position.y < groundPosY) {
+        //     player.hitBox.position.y = groundPosY;
+        //     player.velocity.y = 0;
+        //     player.isJumping = false;
+        // }
     }
 
     const playersToSend: { [id: string]: { x: number, y: number, z: number } } = {};

@@ -188,6 +188,15 @@ export default class Game extends Component<GameProps> {
             }
         }
 
+        // cast ray below player to check ground height
+        const raycaster = new THREE.Raycaster();
+        raycaster.set(new THREE.Vector3(this.player.position.x, 100, this.player.position.z), new THREE.Vector3(0, -1, 0));
+        const intersects = raycaster.intersectObject(this.ground2.mesh);
+        if (intersects.length > 0) {
+            console.log("player pos: " + this.player.position.x + " " + this.player.position.y + " " + this.player.position.z);
+            console.log(intersects[0].point.y);
+        }
+
         
         // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
