@@ -151,7 +151,7 @@ export function updatePlayerPositions(io: Server) {
             groundPosY = intersects[0].point.z;
             player.hitBox.position.y = groundPosY;
             console.log("player position: ", player.hitBox.position);
-            console.log("ground position: ", intersects[0].point);
+            console.log("ground position: ", intersects[0].point.z);
             // console.log("ground point position: ", intersects[0].point);
         }
 

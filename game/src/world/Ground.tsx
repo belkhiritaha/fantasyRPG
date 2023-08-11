@@ -21,6 +21,8 @@ export default class Ground extends React.Component<GroundProps> {
     public positions: THREE.Vector3[] = [];
     public mesh = new THREE.Mesh();
     public simplex = new SimplexNoise();
+    // public heightMap load from png
+    public heightMap = new THREE.TextureLoader().load('/heightmap.png');
     public material = new THREE.MeshLambertMaterial({
         color: 0x188018,
         side: THREE.DoubleSide,
@@ -41,8 +43,8 @@ export default class Ground extends React.Component<GroundProps> {
     constructor(props: any) {
         super(props);
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.rotateX(3 * Math.PI / 2);
-        this.mesh.rotateZ(Math.PI / 2);
+        this.mesh.rotateX(Math.PI / 2);
+        // this.mesh.rotateZ(Math.PI / 2);
         // this.mesh.position.y = -20;
         this.mesh.receiveShadow = true;
         this.mesh.castShadow = true;
@@ -64,7 +66,7 @@ export default class Ground extends React.Component<GroundProps> {
             for (let i = 0; i < this.mesh.geometry.attributes.position.count; i++) {
                 const x = this.mesh.geometry.attributes.position.getX(i);
                 const y = this.mesh.geometry.attributes.position.getY(i);
-                const z = verticesCoords.find((v) => v.x === x && v.y === y)!.z;
+                const z = - verticesCoords.find((v) => v.x === x && v.y === y)!.z;
                 const scope = this.DIMENSIONS.width / this.DIMENSIONS.segmentW;
 
                 this.positions.push(new THREE.Vector3(x * scope, z * scope, y * scope));
@@ -74,6 +76,7 @@ export default class Ground extends React.Component<GroundProps> {
 
                 // update bump map
                 this.mesh.geometry.attributes.normal.setZ(i, z);
+                console.log("set x: " + x + " y: " + y + " to z: " + z);
             }
             this.mesh.geometry.attributes.position.needsUpdate = true;
             this.mesh.geometry.attributes.normal.needsUpdate = true;
