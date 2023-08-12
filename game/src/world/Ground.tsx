@@ -7,6 +7,7 @@ import Grass from '../Grass';
 interface GroundProps {
     scene: THREE.Scene;
     player: Player;
+    setGameLoadingState: (isGameLoading: boolean) => void;
 }
 
 const PLAYER_RADIUS = 10;
@@ -101,20 +102,15 @@ export default class Ground extends React.Component<GroundProps> {
         this.props.scene.add(this.mesh);
         console.log(this.positions);
 
-        // const light = new THREE.AmbientLight(0x404040);
-        // light.intensity = 0.2;
-        // this.props.scene.add(light);
 
-        // // ADD a Point Light and position the light away from the camera
-        // const pointLight = new THREE.PointLight('white');
-        // // set intensity
-        // pointLight.intensity = 1;
-        // pointLight.position.set(100, 100, 0);
-        // pointLight.add(new THREE.Mesh(
-        // new THREE.SphereGeometry(1, 10, 10),
-        // new THREE.MeshBasicMaterial({
-        //     color: 'white'
-        // })));
-        // this.props.scene.add(pointLight);
+        // loop to check if grass.isLoaded
+        const checkIfLoaded = setInterval(() => {
+            if (this.grass.isLoaded) {
+                console.log("grass is loaded");
+                this.props.setGameLoadingState(false);
+                clearInterval(checkIfLoaded);
+            }
+        }
+        , 1000);
     }
 }

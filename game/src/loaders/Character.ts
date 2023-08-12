@@ -16,7 +16,7 @@ export default class Character extends Component<CharacterProps> {
     
     public runAction: THREE.AnimationAction;
     public idleAction: THREE.AnimationAction;
-    public attackAction: THREE.AnimationAction;
+    public attackAction: THREE.AnimationAction[] = [];
 
     public activeAction: THREE.AnimationAction;
     public lastAction: THREE.AnimationAction;
@@ -42,18 +42,34 @@ export default class Character extends Component<CharacterProps> {
                 if (props.modelPath === "Knight.glb") {
                     this.runAction = this.mixer.clipAction(gltf.animations[48]);
                     this.idleAction = this.mixer.clipAction(gltf.animations[36]);
-                    this.attackAction = this.mixer.clipAction(gltf.animations[0]);
+                    this.attackAction.push(this.mixer.clipAction(gltf.animations[0])); // from 0 to 3 are attack animations
+                    this.attackAction.push(this.mixer.clipAction(gltf.animations[1]));
+                    this.attackAction.push(this.mixer.clipAction(gltf.animations[2]));
+                    // this.attackAction.push(this.mixer.clipAction(gltf.animations[3]));
+                    this.attackAction.push(this.mixer.clipAction(gltf.animations[8]));
 
-                    this.attackAction.clampWhenFinished = true;
-                    // this.attackAction.loop = THREE.LoopOnce;
-                    // this.attackAction.timeScale = 1.5;
+                    for (let i = 0; i < this.attackAction.length; i++) {
+                        // this.attackAction[i].clampWhenFinished = true;
+                        this.attackAction[i].loop = THREE.LoopOnce;
+                        this.attackAction[i].timeScale = 10;
+                    }
                     // this.attackAction.play();
                     this.idleAction.timeScale = 3;
+                    this.runAction.timeScale = 6;
+                    // this.runAction.play();
                     this.idleAction.play();
 
                     const helmet = (gltf.scene.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14].children[0];
                     helmet.rotation.x = 1;
                     helmet.parent?.remove(helmet);
+
+                    // hp bar
+                    // const geometry = new THREE.PlaneGeometry(1, 0.1); needs to be proportional to the hp
+                    const geometry = new THREE.PlaneGeometry(1 * this.hp / 100, 0.1);
+                    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                    const plane = new THREE.Mesh(geometry, material);
+                    plane.position.set(0, 3, 0);
+                    plane.name = "hpBar";
                 }
                 else {
                     // scale x2
@@ -65,13 +81,15 @@ export default class Character extends Component<CharacterProps> {
                     this.idleAction.play();
 
                     this.runAction = this.mixer.clipAction(gltf.animations[48]);
-                    this.attackAction = this.mixer.clipAction(gltf.animations[0]);
+                    this.attackAction.push(this.mixer.clipAction(gltf.animations[0]));
 
                     // hp bar
-                    const geometry = new THREE.PlaneGeometry(1, 0.1);
+                    // const geometry = new THREE.PlaneGeometry(1, 0.1); needs to be proportional to the hp
+                    const geometry = new THREE.PlaneGeometry(1 * this.hp / 100, 0.1);
                     const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                     const plane = new THREE.Mesh(geometry, material);
                     plane.position.set(0, 3, 0);
+                    plane.name = "hpBar";
 
                     // gltf.scene.add( this.hitBox );
                     this.hitBox.name = "hitBox";
@@ -103,6 +121,43 @@ export default class Character extends Component<CharacterProps> {
             this.mixer.update(deltaTime);
         }
     }
+
+    takeDamage(damage: number) {
+        this.hp -= damage;
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.props.scene.remove(this.gltf);
+            // remove hitbox
+            this.props.scene.remove(this.hitBox);
+        }
+        else {
+            const hpBar = this.gltf.getObjectByName("hpBar") as THREE.Mesh;
+            hpBar.geometry = new THREE.PlaneGeometry(1 * this.hp / 100, 0.1);
+        }
+    }
+
+    playAttackAnimation() {
+        const randomAttack = Math.floor(Math.random() * this.attackAction.length);
+        this.attackAction[randomAttack].play();
+        this.attackAction[randomAttack].reset();
+    }
+
+    playRunAnimation() {
+        // if animation is already playing, don't play it again
+        if (this.runAction?.isRunning()) {
+            return;
+        }
+        this.idleAction?.stop();
+        this.runAction?.reset();
+        this.runAction?.play();
+    }
+    
+    stopRunAnimation() {
+        this.runAction?.stop();
+        // this.idleAction?.reset();
+        this.idleAction?.play();
+    }
+
 
     render() {
         return null;

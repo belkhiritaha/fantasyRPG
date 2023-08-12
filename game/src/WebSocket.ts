@@ -13,8 +13,20 @@ interface WebSocketProps {
     setPlayerNameState: (playerName: string) => void;
     otherPlayersHandler: OtherPlayersHandler;
     chatBoxRef: React.RefObject<any>;
-    mob: Mob;
+    mobs: { [id: string]: Mob };
     hitTextList: HitText[];
+}
+
+interface ServerMobData {
+    name: string;
+    velocity: THREE.Vector3;
+    lookAt: THREE.Vector3;
+    hp: number;
+    height: number;
+    hitBox: THREE.Mesh;
+    isMoving: boolean;
+    isJumping: boolean;
+    attackCooldown: number;
 }
 
 
@@ -30,7 +42,7 @@ class WebSocketClass extends Component<WebSocketProps> {
 
     initializeGameState(): void {
         if (!this.websocket) return;
-        this.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number } }, name: string }) => {
+        this.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number } }, name: string, mobs: { [id: string]: ServerMobData } }) => {
             console.log("Init game state:", data);
             this.id = data.id;
             for (const id in data.players) {
@@ -41,6 +53,15 @@ class WebSocketClass extends Component<WebSocketProps> {
                     continue;
                 }
                 this.props.otherPlayersHandler.addPlayer(id, new THREE.Vector3(data.players[id].x, data.players[id].y, data.players[id].z));
+            }
+            for (const id in data.mobs) {
+                const mob = new Mob({ position: new THREE.Vector3(), scene: this.props.scene });
+                mob.name = data.mobs[id].name;
+                mob.velocity = new THREE.Vector3(data.mobs[id].velocity.x, data.mobs[id].velocity.y, data.mobs[id].velocity.z);
+                mob.height = data.mobs[id].height;
+                // add mob to mobs list
+                this.props.mobs[id] = mob;
+                this.props.scene.add(mob.character.gltf);
             }
         });
     }
@@ -63,14 +84,27 @@ class WebSocketClass extends Component<WebSocketProps> {
 
     playersPositionUpdatesListener(): void {
         if (!this.websocket) return;
-        this.websocket.on("playersPositionUpdates", (data: { [id: string]: { x: number, y: number, z: number } }) => {
+        this.websocket.on("playersPositionUpdates", (data: { [id: string]: { position: THREE.Vector3, velocity: THREE.Vector3 } }) => {
             for (const id in data) {
                 if (id === this.id) {
-                    this.props.player.setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
+                    this.props.player.setPosition(new THREE.Vector3(data[id].position.x, data[id].position.y, data[id].position.z));
+                    this.props.player.setVelocity(new THREE.Vector3(data[id].velocity.x, data[id].velocity.y, data[id].velocity.z));
                 }
                 if (this.props.otherPlayersHandler.otherPlayers[id]) {
-                    this.props.otherPlayersHandler.otherPlayers[id].setPosition(new THREE.Vector3(data[id].x, data[id].y, data[id].z));
+                    this.props.otherPlayersHandler.otherPlayers[id].setPosition(new THREE.Vector3(data[id].position.x, data[id].position.y, data[id].position.z));
+                    this.props.otherPlayersHandler.otherPlayers[id].setVelocity(new THREE.Vector3(data[id].velocity.x, data[id].velocity.y, data[id].velocity.z));
                 }
+            }
+        });
+    }
+
+    playerAttackListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("playerAttack", (data: { id: string }) => {
+            console.log("Player attack:", data);
+            // play attack animation for other players
+            if (this.props.otherPlayersHandler.otherPlayers[data.id]) {
+                this.props.otherPlayersHandler.otherPlayers[data.id].character.playAttackAnimation();
             }
         });
     }
@@ -78,11 +112,12 @@ class WebSocketClass extends Component<WebSocketProps> {
     mobPositionUpdatesListener(): void {
         if (!this.websocket) return;
         this.websocket.on("mobPositionUpdate", (data: { id: string, position: { x: number, y: number, z: number }, lookAt: { x: number, y: number, z: number } }) => {
-            this.props.mob.setPosition(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+            const mob = this.props.mobs[data.id];
+            mob.setPosition(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
             const yAxisAngle = Math.atan2(data.lookAt.x, data.lookAt.z);
             const xAxisAngle = Math.atan2(- data.lookAt.y, Math.sqrt(data.lookAt.x ** 2 + data.lookAt.z ** 2));
-            this.props.mob.character.setYAxisAngle(yAxisAngle);
-            this.props.mob.character.setXAxisAngle(xAxisAngle);
+            mob.character.setYAxisAngle(yAxisAngle);
+            mob.character.setXAxisAngle(xAxisAngle);
         });
     }
 
@@ -104,12 +139,13 @@ class WebSocketClass extends Component<WebSocketProps> {
         if (!this.websocket) return;
         this.websocket.on("mobHit", (data: { id: string, dmg: number }) => {
             console.log("Mob hit:", data);
-            const popUpX = this.props.mob.position.x + Math.random() * 4 - 1;
-            const popUpY = this.props.mob.position.y + this.props.mob.height + Math.random() * 2 - 1;
-            const popUpZ = this.props.mob.position.z + Math.random() * 4 - 1;
+            const mob = this.props.mobs[data.id];
+            const popUpX = mob.position.x + Math.random() * 4 - 1;
+            const popUpY = mob.position.y + mob.height + Math.random() * 2 - 1;
+            const popUpZ = mob.position.z + Math.random() * 4 - 1;
             const hitText = new HitText({ position: new THREE.Vector3(popUpX, popUpY, popUpZ), scene: this.props.scene });
             this.props.hitTextList.push(hitText);
-            console.log(this.props.hitTextList);
+            mob.takeDamage(data.dmg);
         });
     }
 

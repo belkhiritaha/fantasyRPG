@@ -17,6 +17,7 @@ class Grass extends Component<GrassProps> {
     public gridWidth = 500;
     public grassCount = 500000;
     public grassPositions: THREE.Vector3[] = [];
+    public isLoaded = false;
 
     constructor(props: GrassProps) {
         super(props);
@@ -147,7 +148,7 @@ class Grass extends Component<GrassProps> {
         }
 
        
-
+        this.isLoaded = true;
         return instancedMesh;
     }
 

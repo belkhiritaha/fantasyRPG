@@ -12,6 +12,7 @@ import HitText from "./effects/HitText";
 import WebSocketClass from "./WebSocket";
 
 import ChatBox , { ChatBoxRef, ChatMessage } from "./HUD/ChatBox";
+import HUD from "./HUD/HUD";
 import Ground from "./world/Ground";
 
 interface GameProps {
@@ -27,17 +28,19 @@ export default class Game extends Component<GameProps> {
     public keyStates: { [key: string]: boolean } = {};
     public requestID: number | null = null;
     public mount: RefObject<HTMLDivElement> = React.createRef();
+    public mobs: { [id: string]: Mob } = {};
 
     public player = new Player({ camera: this.camera.camera, scene: this.scene });
     public animationMixers: THREE.AnimationMixer[] = [];
-    public ground2 = new Ground({ scene: this.scene });
+    public ground2 = new Ground({ scene: this.scene, setGameLoadingState: (isGameLoading: boolean) => { this.setState({ isGameLoading: isGameLoading }) } });
     // public grass = new Grass({ scene: this.scene, ground: this.ground2.mesh, dimensions: this.ground2.DIMENSIONS });
     state = {
         isTyping: false,
-        playerName: ""
+        playerName: "",
+        isGameLoading: true
     };
     public chatBoxRef = createRef<ChatBoxRef>();
-    public mob = new Mob({ scene: this.scene, position: new THREE.Vector3(0, 0, 0) });
+    // public mob = new Mob({ scene: this.scene, position: new THREE.Vector3(0, 0, 0) });
     public hitTextList: HitText[] = [];
     
     public currentPlayerHandler = new CurrentPlayerHandler({ camera: this.camera.camera, scene: this.scene, player: this.player });
@@ -52,9 +55,10 @@ export default class Game extends Component<GameProps> {
         setPlayerNameState: (playerName: string) => {
             this.setState({ playerName: playerName });
         },
-        mob: this.mob,
+        mobs: this.mobs,
         hitTextList: this.hitTextList
     });
+
 
     handleSocketSpecialEvents() {
         if (!this.webSocket.websocket) return;
@@ -62,6 +66,7 @@ export default class Game extends Component<GameProps> {
         this.webSocket.newPlayerListener();
         this.webSocket.newMessageListener();
         this.webSocket.playersPositionUpdatesListener();
+        this.webSocket.playerAttackListener();
         this.webSocket.playerRotationUpdateListener();
         this.webSocket.mobPositionUpdatesListener();
         this.webSocket.mobHitListener();
@@ -175,7 +180,12 @@ export default class Game extends Component<GameProps> {
         for (const id in this.otherPlayersHandler.otherPlayers) {
             this.otherPlayersHandler.otherPlayers[id].update(delaTime);
         }
-        this.mob.character.update(delaTime);
+        
+        for (const id in this.mobs) {
+            const mob = this.mobs[id];
+            mob.character.update(delaTime);
+        }
+
         this.pointLight.position.set(this.player.position.x, this.player.position.y + 1000 , this.player.position.z);
         
         this.player.weapon.bobbleWeapon(delaTime);
@@ -187,18 +197,6 @@ export default class Game extends Component<GameProps> {
                 delete this.hitTextList[this.hitTextList.indexOf(hitText)];
             }
         }
-
-        // cast ray below player to check ground height
-        const raycaster = new THREE.Raycaster();
-        raycaster.set(new THREE.Vector3(this.player.position.x, 100, this.player.position.z), new THREE.Vector3(0, -1, 0));
-        const intersects = raycaster.intersectObject(this.ground2.mesh);
-        if (intersects.length > 0) {
-            console.log("player pos: " + this.player.position.x + " " + this.player.position.y + " " + this.player.position.z);
-            console.log(intersects[0].point.y);
-        }
-
-        
-        // this.player.weapon.gltf?.position.add(new THREE.Vector3(0, Math.sin(this.clock.getElapsedTime() * 10) / 100, 0));
 
         this.renderer.render(this.scene, this.camera.camera);
         this.ground2.grass?.animate(this.clock.getElapsedTime());
@@ -228,6 +226,7 @@ export default class Game extends Component<GameProps> {
     render() {
         return (
             <div ref={this.mount}>
+                <HUD isGameLoading={this.state.isGameLoading} currentHealth={this.player.hp} currentMana={100} />
                 <ChatBox ref={this.chatBoxRef} playerName={this.state.playerName} />
                 <div id="crosshair" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "2px", height: "2px", backgroundColor: "white" }}></div>
             </div>

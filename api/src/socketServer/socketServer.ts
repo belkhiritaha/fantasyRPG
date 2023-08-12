@@ -12,6 +12,7 @@ interface Player {
     hitBox: THREE.Mesh;
     isMoving: boolean;
     isJumping: boolean;
+    attackCooldown: number;
 }
 
 const adjectives = ["Whimsical","Bubbly","Zany","Quirky","Wacky","Goofy","Cheeky","Kooky","Silly","Bouncy","Peculiar","Zesty","Fuzzy","Jovial","Jolly","Boisterous","Witty","Funky","Spiffy","Zippy"];
@@ -29,6 +30,7 @@ const firstMob : Player = {
     hitBox: new THREE.Mesh(new THREE.BoxGeometry(5, 10, 5), new THREE.MeshBasicMaterial({ color: 0x00ff00 })),
     isMoving: false,
     isJumping: false,
+    attackCooldown: 0,
 }
 
 // const mobHitBox = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined);
@@ -45,9 +47,9 @@ export function initializeSocket(io: Server) {
         console.log('New WebSocket connection');
         const playerId = socket.id;
         const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
-        players[playerId] = { velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined), isMoving: false, isJumping: false };
+        players[playerId] = { velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined), isMoving: false, isJumping: false, attackCooldown: 0 };
         players[playerId].hitBox.position.set(1, 20, 2);
-        socket.emit('initGameState', { id: playerId, players: players, name: name });
+        socket.emit('initGameState', { id: playerId, players: players, name: name, mobs: mobs });
         
         socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].hitBox.position, name: name });
 
@@ -101,14 +103,20 @@ export function initializeSocket(io: Server) {
             const player = players[playerId];
             const ray = new THREE.Raycaster(player.hitBox.position, player.lookAt.normalize(), 0, range);
             
+            console.log("player.attackCooldown", player.attackCooldown);
+            if (player.attackCooldown > 0) {
+                return;
+            }
+            socket.broadcast.emit('playerAttack', { id: playerId });
+            player.attackCooldown = 1;
             for (const mobId in mobs) {
                 const mob = mobs[mobId];
-                console.log(scene.children);
 
                 const intersects = ray.intersectObjects(scene.children, true);
                 if (intersects[0]) {
                     console.log("hit");
-                    // mob.hp -= damage;
+                    mob.hp -= damage;
+                    console.log(mob.hp);
                     io.emit('mobHit', { id: mobId, dmg: damage });
                     if (mob.hp <= 0) {
                         delete mobs[mobId];
@@ -136,6 +144,13 @@ export function updatePlayerPositions(io: Server) {
 
     for (const playerId in players) {
         const player = players[playerId];
+        // update attack cooldown
+        if (player.attackCooldown > 0) {
+            player.attackCooldown -= deltaTime;
+            if (player.attackCooldown < 0) {
+                player.attackCooldown = 0;
+            }
+        }
         // Apply gravity
         player.velocity.addScaledVector(gravity, deltaTime);
         // Apply damping
@@ -144,31 +159,29 @@ export function updatePlayerPositions(io: Server) {
         player.velocity.addScaledVector(player.velocity, damping);
 
         let groundPosY = 0;
-        // console.log("player position: ", player.hitBox.position);
         const ray = new THREE.Raycaster(new THREE.Vector3(player.hitBox.position.x, player.hitBox.position.z, 100), new THREE.Vector3(0, 0, -1));
         const intersects = ray.intersectObject(ground);
         if (intersects[0]) {
             groundPosY = intersects[0].point.z;
-            player.hitBox.position.y = groundPosY;
-            console.log("player position: ", player.hitBox.position);
-            console.log("ground position: ", intersects[0].point.z);
-            // console.log("ground point position: ", intersects[0].point);
+            if (player.hitBox.position.y - player.height < groundPosY) {
+                player.hitBox.position.y = groundPosY + player.height;
+                player.velocity.y = 0;
+                player.isJumping = false;
+            }
         }
-
-        // if (player.hitBox.position.y < groundPosY) {
-        //     player.hitBox.position.y = groundPosY;
-        //     player.velocity.y = 0;
-        //     player.isJumping = false;
-        // }
     }
 
-    const playersToSend: { [id: string]: { x: number, y: number, z: number } } = {};
+    const playersToSend: { [id: string]: { position: THREE.Vector3, velocity: THREE.Vector3 } } = {};
     for (const playerId in players) {
         const player = players[playerId];
+        // playersToSend[playerId] = {
+        //     x: player.hitBox.position.x,
+        //     y: player.hitBox.position.y,
+        //     z: player.hitBox.position.z,
+        // };
         playersToSend[playerId] = {
-            x: player.hitBox.position.x,
-            y: player.hitBox.position.y,
-            z: player.hitBox.position.z,
+            position: player.hitBox.position,
+            velocity: player.velocity,
         };
     }
 
@@ -187,42 +200,45 @@ export function updateMobPositions(io: Server, scene: THREE.Scene) {
     // // target the first player
     const target = players[Object.keys(players)[0]];
 
-    // move the mob towards the player
-    firstMob.velocity.addScaledVector(target.hitBox.position.clone().sub(firstMob.hitBox.position).normalize(), deltaTime * 4);
-    // rotate the mob towards the player
-    firstMob.hitBox.lookAt(target.hitBox.position);
+    for (const mobId in mobs) {
+        const mob = mobs[mobId];
+        // move the mob towards the player
+        mob.velocity.addScaledVector(target.hitBox.position.clone().sub(mob.hitBox.position).normalize(), deltaTime * 4);
+        // rotate the mob towards the player
+        mob.hitBox.lookAt(target.hitBox.position);
 
-    // Apply gravity
-    firstMob.velocity.addScaledVector(gravity, deltaTime);
-    // Apply damping
-    const deltaPosition = firstMob.velocity.clone().multiplyScalar(deltaTime * 10);
-    firstMob.hitBox.position.set(firstMob.hitBox.position.x + deltaPosition.x, firstMob.hitBox.position.y + deltaPosition.y, firstMob.hitBox.position.z + deltaPosition.z);
-    firstMob.hitBox.updateMatrixWorld();
-    firstMob.velocity.addScaledVector(firstMob.velocity, damping);
+        // Apply gravity
+        mob.velocity.addScaledVector(gravity, deltaTime);
+        // Apply damping
+        const deltaPosition = mob.velocity.clone().multiplyScalar(deltaTime * 10);
+        mob.hitBox.position.set(mob.hitBox.position.x + deltaPosition.x, mob.hitBox.position.y + deltaPosition.y, mob.hitBox.position.z + deltaPosition.z);
+        mob.hitBox.updateMatrixWorld();
+        mob.velocity.addScaledVector(mob.velocity, damping);
 
-    const hitBoxObject = scene.getObjectByName("hitBox");
-    if (hitBoxObject) {
-        hitBoxObject.position.set(firstMob.hitBox.position.x, firstMob.hitBox.position.y, firstMob.hitBox.position.z);
-    }
-    
-    let groundPosY = 0;
-    const ray = new THREE.Raycaster(firstMob.hitBox.position, new THREE.Vector3(0, -1, 0));
-    const intersects = ray.intersectObject(ground);
-    if (intersects[0]) {
-        groundPosY = intersects[0].point.y;
-    }
+        const hitBoxObject = scene.getObjectByName("hitBox");
+        if (hitBoxObject) {
+            hitBoxObject.position.set(mob.hitBox.position.x, mob.hitBox.position.y, mob.hitBox.position.z);
+        }
+        
+        let groundPosY = 0;
+            const ray = new THREE.Raycaster(new THREE.Vector3(mob.hitBox.position.x, mob.hitBox.position.z, 100), new THREE.Vector3(0, 0, -1));
+            const intersects = ray.intersectObject(ground);
+            if (intersects[0]) {
+                groundPosY = intersects[0].point.z;
+                if (mob.hitBox.position.y < groundPosY) {
+                    mob.hitBox.position.y = groundPosY;
+                    mob.velocity.y = 0;
+                    mob.isJumping = false;
+                }
+            }
+        
+        if (mob.hitBox.position.distanceTo(target.hitBox.position) < 4) {
+            mob.velocity.multiplyScalar(0);
+        }
 
-    if (firstMob.hitBox.position.y < groundPosY) {
-        firstMob.hitBox.position.y = groundPosY;
-        firstMob.velocity.y = 0;
-    }
-    
-    if (firstMob.hitBox.position.distanceTo(target.hitBox.position) < 4) {
-        firstMob.velocity.multiplyScalar(0);
-    }
-
-    // if mob is moving, update the position
-    if (firstMob.velocity.length() > 0) {
-        io.emit('mobPositionUpdate', { id: "1", position: firstMob.hitBox.position, lookAt: firstMob.hitBox.getWorldDirection(new THREE.Vector3()) });
+        // if mob is moving, update the position
+        if (mob.velocity.length() > 0) {
+            io.emit('mobPositionUpdate', { id: mobId, position: mob.hitBox.position, lookAt: mob.hitBox.getWorldDirection(new THREE.Vector3()) });
+        }
     }
 }

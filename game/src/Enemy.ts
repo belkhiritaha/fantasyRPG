@@ -25,11 +25,8 @@ export default class Enemy extends Component<EnemyProps> {
 
     update(deltaTime: number) {
         this.character.update(deltaTime);
-        const gravity = new THREE.Vector3(0, -9.8, 0);
-        this.velocity.addScaledVector(gravity, deltaTime);
 
-
-        const speedDelta = deltaTime * 5;
+        // const speedDelta = deltaTime * 5;
 
         let damping = Math.exp(-4 * deltaTime) - 1;
 
@@ -44,12 +41,23 @@ export default class Enemy extends Component<EnemyProps> {
             this.velocity.y = 0;
         }
 
+        // if is running
+        if (this.velocity.length() > 0.1) {
+            this.character.playRunAnimation();
+        } else {
+            this.character.stopRunAnimation();
+        }
+
         this.character.gltf?.position.copy(this.position);
     }
 
     setPosition(position: THREE.Vector3) {
         this.position.copy(position);
         this.character.gltf?.position.copy(position);
+    }
+
+    setVelocity(velocity: THREE.Vector3) {
+        this.velocity.copy(velocity);
     }
     
     removeFromScene() {

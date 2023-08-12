@@ -13,6 +13,7 @@ export default class Player extends Component<PlayerProps> {
     public position: THREE.Vector3;
     public direction: THREE.Vector3;
     public velocity: THREE.Vector3;
+    public hp = 100;
     public isTyping = false;
     public name = '';
     public height = 1.8;
@@ -50,6 +51,10 @@ export default class Player extends Component<PlayerProps> {
     setPosition(position: THREE.Vector3) {
         this.position.copy(position);
         this.props.camera.position.copy(this.position.clone().add(new THREE.Vector3(0, this.height, 0)));
+    }
+
+    setVelocity(velocity: THREE.Vector3) {
+        this.velocity.copy(velocity);
     }
 
     getForwardVector(): THREE.Vector3 {

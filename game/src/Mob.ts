@@ -51,6 +51,11 @@ export default class Mob extends Component<MobProps> {
         return this.direction;
     }
 
+
+    takeDamage(damage: number) {
+        this.character.takeDamage(damage);
+    }
+
     render() {
         return null;
     }
