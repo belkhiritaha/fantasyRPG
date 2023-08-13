@@ -39,7 +39,7 @@ export default class Character extends Component<CharacterProps> {
                 this.gltf = gltf.scene;
                 this.mixer = new THREE.AnimationMixer(this.gltf);
 
-                if (props.modelPath === "Knight.glb") {
+                if (props.modelPath === "Knight.glb" || props.modelPath === "Rogue_Hooded.glb") {
                     this.runAction = this.mixer.clipAction(gltf.animations[48]);
                     this.idleAction = this.mixer.clipAction(gltf.animations[36]);
                     this.attackAction.push(this.mixer.clipAction(gltf.animations[0])); // from 0 to 3 are attack animations

@@ -10,8 +10,8 @@ interface OtherPlayersHandlerProps {
 export default class OtherPlayersHandler extends Component<OtherPlayersHandlerProps> {
     public otherPlayers: { [id: string]: Enemy } = {};
 
-    addPlayer(id: string, position: THREE.Vector3) {
-        this.otherPlayers[id] = new Enemy({ scene: this.props.scene, position: position });
+    addPlayer(id: string, position: THREE.Vector3, classType: string) {
+        this.otherPlayers[id] = new Enemy({ scene: this.props.scene, position: position, classType: classType });
         this.props.scene.add(this.otherPlayers[id].character.gltf);
     }
 

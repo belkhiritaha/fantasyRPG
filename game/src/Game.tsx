@@ -16,6 +16,8 @@ import HUD from "./HUD/HUD";
 import Ground from "./world/Ground";
 
 interface GameProps {
+    username: string;
+    classType: string;
 }
 
 const debugLookAtLine = new THREE.Line3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0));
@@ -30,13 +32,13 @@ export default class Game extends Component<GameProps> {
     public mount: RefObject<HTMLDivElement> = React.createRef();
     public mobs: { [id: string]: Mob } = {};
 
-    public player = new Player({ camera: this.camera.camera, scene: this.scene });
+    public player = new Player({ camera: this.camera.camera, scene: this.scene, classType: this.props.classType });
     public animationMixers: THREE.AnimationMixer[] = [];
     public ground2 = new Ground({ scene: this.scene, setGameLoadingState: (isGameLoading: boolean) => { this.setState({ isGameLoading: isGameLoading }) } });
     // public grass = new Grass({ scene: this.scene, ground: this.ground2.mesh, dimensions: this.ground2.DIMENSIONS });
     state = {
         isTyping: false,
-        playerName: "",
+        playerName: this.props.username,
         isGameLoading: true
     };
     public chatBoxRef = createRef<ChatBoxRef>();
@@ -167,6 +169,7 @@ export default class Game extends Component<GameProps> {
         // if (document.pointerLockElement === document.body) {
         //     document.exitPointerLock();
         // }
+        this.player.weapon.release();
     }
 
     startAnimationLoop() {

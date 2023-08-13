@@ -4,11 +4,11 @@ import Game from './Game'
 
 import './App.css'
 
-function App() {
+function App(props: { username: string, classType: string }) {
     
     return (
         <>
-            <Game />
+            <Game username={props.username} classType={props.classType} />
         </>
     )
 }

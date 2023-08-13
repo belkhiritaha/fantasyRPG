@@ -7,6 +7,7 @@ const BLOCK_RADIUS = 2;
 interface PlayerProps {
     camera: THREE.PerspectiveCamera;
     scene: THREE.Scene;
+    classType: string;
 }
 
 export default class Player extends Component<PlayerProps> {
@@ -19,6 +20,7 @@ export default class Player extends Component<PlayerProps> {
     public height = 1.8;
     public weapon: Weapon;
     public group: THREE.Group;
+    public classType = this.props.classType;
 
     public lookAtLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff0000 }));
 

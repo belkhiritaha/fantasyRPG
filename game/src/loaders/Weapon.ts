@@ -2,6 +2,7 @@ import { Component } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import Player from "../Player";
+import WeaponAddon from "./WeaponAddon";
 
 interface WeaponProps {
     position: THREE.Vector3;
@@ -21,6 +22,8 @@ export default class Weapon extends Component<WeaponProps> {
     public activeAction: THREE.AnimationAction;
     public lastAction: THREE.AnimationAction;
 
+    public weaponAddon: WeaponAddon;
+
 
     constructor(props: WeaponProps) {
         super(props);
@@ -29,7 +32,8 @@ export default class Weapon extends Component<WeaponProps> {
         // const texture = new THREE.TextureLoader().load("knight_texture.png");
 
         loader.load(
-            "sword_2handed_color.gltf",
+            // "sword_2handed_color.gltf",
+            this.props.player.classType === "warrior" ? "sword_2handed_color.gltf" : "crossbow_2handed.gltf",
             (gltf) => {
                 this.props.scene.add(gltf.scene);
                 this.gltf = gltf.scene;
@@ -38,14 +42,24 @@ export default class Weapon extends Component<WeaponProps> {
                 console.log("Added weapon to scene");
                 console.log(gltf);
 
-                // rotate weapon
-                // this.gltf.rotation.x = -Math.PI / 4;
-                // this.gltf.rotation.y = 3 * Math.PI / 4;
-                // this.gltf.rotation.z = Math.PI / 8;
+                switch (this.props.player.classType) {
+                    case "warrior":
+                    const initialEuler = new THREE.Euler(-Math.PI / 4, 3 * Math.PI / 4, 0, 'XYZ');
+                    const initialQuaternion = new THREE.Quaternion().setFromEuler(initialEuler);
+                    this.gltf.quaternion.copy(initialQuaternion);
+                    break;
+                    case "ranger":
+                    const initialEuler2 = new THREE.Euler(0, - 8 * Math.PI / 8, - Math.PI / 8, 'XYZ');
+                    const initialQuaternion2 = new THREE.Quaternion().setFromEuler(initialEuler2);
+                    this.gltf.quaternion.copy(initialQuaternion2);
+                    break;
+                }
 
-                const initialEuler = new THREE.Euler(-Math.PI / 4, 3 * Math.PI / 4, 0, 'XYZ');
-                const initialQuaternion = new THREE.Quaternion().setFromEuler(initialEuler);
-                this.gltf.quaternion.copy(initialQuaternion);
+                this.weaponAddon = new WeaponAddon({ position: new THREE.Vector3(), weapon: this, scene: props.scene, player: props.player, camera: props.camera });
+
+                // add weapon addon to weapon
+                this.gltf.children[0].add(this.weaponAddon.gltf);
+                console.log(this.gltf);
 
                 // add weapon to ccamera group
                 this.props.camera.add(this.gltf);
@@ -98,17 +112,29 @@ export default class Weapon extends Component<WeaponProps> {
     bobbleWeapon(deltaTime: number) {
         if (this.mixer) {
             this.mixer.update(deltaTime);
+            this.weaponAddon.bobbleWeapon(deltaTime);
         }
     }
 
     shoot() {
-        this.attackAction.play();
-        this.strikeAction.play();
+        switch (this.props.player.classType) {
+            case "warrior":
+                this.attackAction.play();
+                this.strikeAction.play();
 
-        this.attackAction.reset();
-        this.strikeAction.reset();
-
+                this.attackAction.reset();
+                this.strikeAction.reset();
+                break;
+            case "ranger":
+                this.weaponAddon.shoot();
+                break;
+        }
     }
+
+    release() {
+        this.weaponAddon.release();
+    }
+
 
 
 

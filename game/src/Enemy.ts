@@ -5,6 +5,7 @@ import Character from "./loaders/Character";
 interface EnemyProps {
     position: THREE.Vector3;
     scene: THREE.Scene;
+    classType: string;
 }
 
 export default class Enemy extends Component<EnemyProps> {
@@ -14,10 +15,12 @@ export default class Enemy extends Component<EnemyProps> {
     public velocity: THREE.Vector3;
     public height = 0;
     public name = '';
+    public hp = 100;
+    public classType = this.props.classType;
 
     constructor(props: EnemyProps) {
         super(props);
-        this.character = new Character({...props, modelPath: "Knight.glb" });
+        this.character = new Character({...props, modelPath: props.classType === "warrior" ? "Knight.glb" : "Rogue_Hooded.glb"});
         this.position = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.velocity = new THREE.Vector3();

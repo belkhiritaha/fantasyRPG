@@ -13,6 +13,7 @@ interface Player {
     isMoving: boolean;
     isJumping: boolean;
     attackCooldown: number;
+    classType: string;
 }
 
 const adjectives = ["Whimsical","Bubbly","Zany","Quirky","Wacky","Goofy","Cheeky","Kooky","Silly","Bouncy","Peculiar","Zesty","Fuzzy","Jovial","Jolly","Boisterous","Witty","Funky","Spiffy","Zippy"];
@@ -31,6 +32,7 @@ const firstMob : Player = {
     isMoving: false,
     isJumping: false,
     attackCooldown: 0,
+    classType: "mob",
 }
 
 // const mobHitBox = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined);
@@ -46,17 +48,31 @@ export function initializeSocket(io: Server) {
     io.on('connection', (socket: Socket) => {
         console.log('New WebSocket connection');
         const playerId = socket.id;
-        const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}_${animals[Math.floor(Math.random() * animals.length)]}`;
-        players[playerId] = { velocity: new THREE.Vector3(), lookAt: new THREE.Vector3(), name: name, hp: 100, height: 1, hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined), isMoving: false, isJumping: false, attackCooldown: 0 };
-        players[playerId].hitBox.position.set(1, 20, 2);
-        socket.emit('initGameState', { id: playerId, players: players, name: name, mobs: mobs });
-        
-        socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].hitBox.position, name: name });
+
+        socket.on('connectPlayer', (data: { name: string, classType: string }) => {
+            players[playerId] = {
+                velocity: new THREE.Vector3(),
+                lookAt: new THREE.Vector3(),
+                name: data.name,
+                hp: 100,
+                height: 1,
+                hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined),
+                isMoving: false,
+                isJumping: false,
+                attackCooldown: 0,
+                classType: data.classType,
+            };
+
+            players[playerId].hitBox.position.set(1, 20, 2);
+            socket.emit('initGameState', { id: playerId, players: players, name: data.name, mobs: mobs });
+            
+            socket.broadcast.emit('new_player', { id: playerId, position: players[playerId].hitBox.position, name: data.name, classType: data.classType });
+        });
 
         socket.on('movement', (data: { forwardVector: { x: number, y: number, z: number }, sideVector: { x: number, y: number, z: number }, deltaTime: number, keyStates: { [key: string]: boolean } }) => {
             const forwardVector = new THREE.Vector3(data.forwardVector.x, data.forwardVector.y, data.forwardVector.z);
             const sideVector = new THREE.Vector3(data.sideVector.x, data.sideVector.y, data.sideVector.z);
-            const movementSpeed = 10;
+            const movementSpeed = 6;
             const jumpSpeed = 3;
             if (data.keyStates['KeyW']) {
                 players[playerId].velocity.add(forwardVector.multiplyScalar(data.deltaTime * movementSpeed));

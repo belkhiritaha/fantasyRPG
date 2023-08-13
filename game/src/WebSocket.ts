@@ -42,7 +42,7 @@ class WebSocketClass extends Component<WebSocketProps> {
 
     initializeGameState(): void {
         if (!this.websocket) return;
-        this.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number } }, name: string, mobs: { [id: string]: ServerMobData } }) => {
+        this.websocket.on("initGameState", (data: { id: string, players: { [id: string]: { x: number, y: number, z: number, classType: string } }, name: string, mobs: { [id: string]: ServerMobData } }) => {
             console.log("Init game state:", data);
             this.id = data.id;
             for (const id in data.players) {
@@ -52,7 +52,8 @@ class WebSocketClass extends Component<WebSocketProps> {
                     console.log("Player name:", this.props.player.name);
                     continue;
                 }
-                this.props.otherPlayersHandler.addPlayer(id, new THREE.Vector3(data.players[id].x, data.players[id].y, data.players[id].z));
+                console.log("Adding a player:", id, data.players[id].x, data.players[id].y, data.players[id].z, data.players[id].classType);
+                this.props.otherPlayersHandler.addPlayer(id, new THREE.Vector3(data.players[id].x, data.players[id].y, data.players[id].z), data.players[id].classType);
             }
             for (const id in data.mobs) {
                 const mob = new Mob({ position: new THREE.Vector3(), scene: this.props.scene });
@@ -68,9 +69,9 @@ class WebSocketClass extends Component<WebSocketProps> {
 
     newPlayerListener(): void {
         if (!this.websocket) return;
-        this.websocket.on("new_player", (data: { id: string, position: { x: number, y: number, z: number }, name: string }) => {
+        this.websocket.on("new_player", (data: { id: string, position: { x: number, y: number, z: number }, name: string, classType: string }) => {
             console.log("New player:", data);
-            this.props.otherPlayersHandler.addPlayer(data.id, new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+            this.props.otherPlayersHandler.addPlayer(data.id, new THREE.Vector3(data.position.x, data.position.y, data.position.z), data.classType);
         });
     }
 
@@ -195,6 +196,8 @@ class WebSocketClass extends Component<WebSocketProps> {
         console.log(this.websocket)
         console.log(this.url)
 
+        //send player name to server
+        this.websocket.emit("connectPlayer", { name: this.props.player.name, classType: this.props.player.classType });
     }
 
     sendMovementDirection(data: { forwardVector: { x: number, y: number, z: number }, sideVector: { x: number, y: number, z: number }, deltaTime: number, keyStates: { [key: string]: boolean } }): void {
