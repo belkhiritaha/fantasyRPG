@@ -72,7 +72,7 @@ export function initializeSocket(io: Server) {
         socket.on('movement', (data: { forwardVector: { x: number, y: number, z: number }, sideVector: { x: number, y: number, z: number }, deltaTime: number, keyStates: { [key: string]: boolean } }) => {
             const forwardVector = new THREE.Vector3(data.forwardVector.x, data.forwardVector.y, data.forwardVector.z);
             const sideVector = new THREE.Vector3(data.sideVector.x, data.sideVector.y, data.sideVector.z);
-            const movementSpeed = 6;
+            const movementSpeed = 8;
             const jumpSpeed = 3;
             if (data.keyStates['KeyW']) {
                 players[playerId].velocity.add(forwardVector.multiplyScalar(data.deltaTime * movementSpeed));

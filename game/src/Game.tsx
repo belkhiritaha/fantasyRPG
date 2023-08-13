@@ -230,7 +230,7 @@ export default class Game extends Component<GameProps> {
         return (
             <div ref={this.mount}>
                 <HUD isGameLoading={this.state.isGameLoading} currentHealth={this.player.hp} currentMana={100} />
-                <ChatBox ref={this.chatBoxRef} playerName={this.state.playerName} />
+                <ChatBox ref={this.chatBoxRef} playerName={this.props.username} />
                 <div id="crosshair" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "2px", height: "2px", backgroundColor: "white" }}></div>
             </div>
         );
