@@ -31,7 +31,7 @@ export default class Mob extends Component<MobProps> {
     }
 
     removeFromScene() {
-        this.props.scene.remove(this.character.gltf);
+        this.props.scene.remove(this.character.gltf ?? null);
     }
 
     getForwardVector(): THREE.Vector3 {

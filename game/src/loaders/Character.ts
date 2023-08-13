@@ -108,11 +108,12 @@ export default class Character extends Component<CharacterProps> {
 
     // set z axis angle
     setYAxisAngle(yAxisAngle: number) {
-        this.gltf.rotation.y = yAxisAngle;
+        // this.gltf?.rotation.y = yAxisAngle;
+        this.gltf ? this.gltf.rotation.y = yAxisAngle : null;
     }
     
     setXAxisAngle(xAxisAngle: number) {
-        const headBone = (this.gltf.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14];
+        const headBone = (this.gltf?.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14];
         headBone.rotation.x = xAxisAngle;
     }
 
@@ -126,12 +127,12 @@ export default class Character extends Component<CharacterProps> {
         this.hp -= damage;
         if (this.hp <= 0) {
             this.hp = 0;
-            this.props.scene.remove(this.gltf);
+            this.props.scene.remove(this.gltf??null);
             // remove hitbox
             this.props.scene.remove(this.hitBox);
         }
         else {
-            const hpBar = this.gltf.getObjectByName("hpBar") as THREE.Mesh;
+            const hpBar = this.gltf?.getObjectByName("hpBar") as THREE.Mesh;
             hpBar.geometry = new THREE.PlaneGeometry(1 * this.hp / 100, 0.1);
         }
     }

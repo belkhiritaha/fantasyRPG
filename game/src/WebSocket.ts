@@ -114,6 +114,8 @@ class WebSocketClass extends Component<WebSocketProps> {
         if (!this.websocket) return;
         this.websocket.on("mobPositionUpdate", (data: { id: string, position: { x: number, y: number, z: number }, lookAt: { x: number, y: number, z: number } }) => {
             const mob = this.props.mobs[data.id];
+            console.log(this.props.mobs)
+            console.log("mob with id " + data.id + " is moving: " + data.position.x + " " + data.position.y + " " + data.position.z);
             mob.setPosition(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
             const yAxisAngle = Math.atan2(data.lookAt.x, data.lookAt.z);
             const xAxisAngle = Math.atan2(- data.lookAt.y, Math.sqrt(data.lookAt.x ** 2 + data.lookAt.z ** 2));
@@ -136,6 +138,18 @@ class WebSocketClass extends Component<WebSocketProps> {
         });
     }
 
+    newMobListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("newMob", (data: { id: string, name: string, position: { x: number, y: number, z: number } }) => {
+            console.log("New mob:", data);
+            const mob = new Mob({ position: new THREE.Vector3(data.position.x, data.position.y, data.position.z), scene: this.props.scene });
+            mob.name = data.name;
+            // add mob to mobs list
+            this.props.mobs[data.id] = mob;
+        });
+    }
+
+
     mobHitListener(): void {
         if (!this.websocket) return;
         this.websocket.on("mobHit", (data: { id: string, dmg: number }) => {
@@ -147,6 +161,16 @@ class WebSocketClass extends Component<WebSocketProps> {
             const hitText = new HitText({ position: new THREE.Vector3(popUpX, popUpY, popUpZ), scene: this.props.scene });
             this.props.hitTextList.push(hitText);
             mob.takeDamage(data.dmg);
+        });
+    }
+
+    mobDeathListener(): void {
+        if (!this.websocket) return;
+        this.websocket.on("mobDeath", (data: { id: string }) => {
+            console.log("Mob death:", data);
+            const mob = this.props.mobs[data.id];
+            mob.removeFromScene();
+            delete this.props.mobs[data.id];
         });
     }
 

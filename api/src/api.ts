@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import https from 'https';
 
 import cors from 'cors';
-import { initializeSocket, updateMobPositions, updatePlayerPositions, scene } from './socketServer/socketServer.js';
+import { initializeSocket, updateMobPositions, updatePlayerPositions, scene, manageMobList } from './socketServer/socketServer.js';
 import messageRouter from './routers/messageRouter.js';
 import { createGround } from './game/ground.js';
 
@@ -66,6 +66,7 @@ const updateInterval = 7.8125; // 1000 ms / 128
 setInterval(() => {
     updatePlayerPositions(io);
     updateMobPositions(io, scene);
+    manageMobList(io);
 }, updateInterval);
 
 

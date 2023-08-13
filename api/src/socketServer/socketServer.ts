@@ -22,27 +22,8 @@ const animals = ["Penguin","Cheetah","Sloth","Kangaroo","Lemur","Hippo","Narwhal
 const players: { [id: string]: Player } = {};
 const mobs: { [id: string]: Player } = {};
 
-const firstMob : Player = {
-    name: "Mob",
-    velocity: new THREE.Vector3(0, 0, 0),
-    lookAt: new THREE.Vector3(0, 0, 0),
-    hp: 100,
-    height: 2,
-    hitBox: new THREE.Mesh(new THREE.BoxGeometry(5, 10, 5), new THREE.MeshBasicMaterial({ color: 0x00ff00 })),
-    isMoving: false,
-    isJumping: false,
-    attackCooldown: 0,
-    classType: "mob",
-}
-
-// const mobHitBox = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), undefined);
-
-mobs["1"] = firstMob;
 
 export const scene = new THREE.Scene();
-firstMob.hitBox.name = "hitBox";
-firstMob.hitBox.position.set(0, 0, 0);
-scene.add(firstMob.hitBox);
 
 export function initializeSocket(io: Server) {
     io.on('connection', (socket: Socket) => {
@@ -59,7 +40,7 @@ export function initializeSocket(io: Server) {
                 hitBox: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), undefined),
                 isMoving: false,
                 isJumping: false,
-                attackCooldown: 0,
+                attackCooldown: data.classType === "warrior" ? 0.5 : 1,
                 classType: data.classType,
             };
 
@@ -100,23 +81,13 @@ export function initializeSocket(io: Server) {
 
         socket.on('rotation', (data: { lookAt: { x: number, y: number, z: number } }) => {
             players[playerId].lookAt = new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z);
-            const ray = new THREE.Raycaster(players[playerId].hitBox.position, new THREE.Vector3(data.lookAt.x, data.lookAt.y, data.lookAt.z));
-
-            const hitBoxObject = scene.getObjectByName("hitBox");
-                if (hitBoxObject) {
-                    // console.log("hitBoxObject", hitBoxObject);
-                    hitBoxObject.position.set(firstMob.hitBox.position.x, firstMob.hitBox.position.y, firstMob.hitBox.position.z);
-                    // console.log("hitBoxObject position", hitBoxObject.position);
-                }
-            
-
             socket.broadcast.emit('playerRotationUpdate', { id: playerId, lookAt: players[playerId].lookAt });
         });
 
         socket.on('attack', () => {
-            const range = 4;
-            const damage = 10;
             const player = players[playerId];
+            const damage = player.classType === "warrior" ? 10 : 5;
+            const range = player.classType === "warrior" ? 5 : 10;
             const ray = new THREE.Raycaster(player.hitBox.position, player.lookAt.normalize(), 0, range);
             
             console.log("player.attackCooldown", player.attackCooldown);
@@ -124,16 +95,17 @@ export function initializeSocket(io: Server) {
                 return;
             }
             socket.broadcast.emit('playerAttack', { id: playerId });
-            player.attackCooldown = 1;
             for (const mobId in mobs) {
                 const mob = mobs[mobId];
-
-                const intersects = ray.intersectObjects(scene.children, true);
+                console.log(mob.hitBox.position);
+                
+                const intersects = ray.intersectObject(mob.hitBox);
                 if (intersects[0]) {
                     console.log("hit");
                     mob.hp -= damage;
                     console.log(mob.hp);
                     io.emit('mobHit', { id: mobId, dmg: damage });
+                    player.attackCooldown = player.classType === "warrior" ? 0.5 : 1;
                     if (mob.hp <= 0) {
                         delete mobs[mobId];
                         io.emit('mobDeath', { id: mobId });
@@ -213,7 +185,7 @@ export function updateMobPositions(io: Server, scene: THREE.Scene) {
         return;
     }
 
-    // // target the first player
+    // // target first player
     const target = players[Object.keys(players)[0]];
 
     for (const mobId in mobs) {
@@ -231,10 +203,17 @@ export function updateMobPositions(io: Server, scene: THREE.Scene) {
         mob.hitBox.updateMatrixWorld();
         mob.velocity.addScaledVector(mob.velocity, damping);
 
-        const hitBoxObject = scene.getObjectByName("hitBox");
-        if (hitBoxObject) {
-            hitBoxObject.position.set(mob.hitBox.position.x, mob.hitBox.position.y, mob.hitBox.position.z);
+        // dont intersect with other mobs
+        for (const mobId2 in mobs) {
+            if (mobId === mobId2) {
+                continue;
+            }
+            const mob2 = mobs[mobId2];
+            if (mob.hitBox.position.distanceTo(mob2.hitBox.position) < 10) {
+                mob.velocity.addScaledVector(mob.hitBox.position.clone().sub(mob2.hitBox.position).normalize(), deltaTime * 4);
+            }
         }
+
         
         let groundPosY = 0;
             const ray = new THREE.Raycaster(new THREE.Vector3(mob.hitBox.position.x, mob.hitBox.position.z, 100), new THREE.Vector3(0, 0, -1));
@@ -256,5 +235,32 @@ export function updateMobPositions(io: Server, scene: THREE.Scene) {
         if (mob.velocity.length() > 0) {
             io.emit('mobPositionUpdate', { id: mobId, position: mob.hitBox.position, lookAt: mob.hitBox.getWorldDirection(new THREE.Vector3()) });
         }
+    }
+}
+
+export function manageMobList(io: Server) {
+    // if there are no players, don't move the mob
+    if (Object.keys(players).length === 0) {
+        return;
+    }
+
+    // if there are less than 2 mobs, add a new one
+    if (Object.keys(mobs).length < 2) {
+        const newMob : Player = {
+            name: "Mob",
+            velocity: new THREE.Vector3(0, 0, 0),
+            lookAt: new THREE.Vector3(0, 0, 0),
+            hp: 100,
+            height: 2,
+            hitBox: new THREE.Mesh(new THREE.BoxGeometry(5, 10, 5), new THREE.MeshBasicMaterial({ color: 0x00ff00 })),
+            isMoving: false,
+            isJumping: false,
+            attackCooldown: 0,
+            classType: "mob",
+        }
+        newMob.hitBox.position.set(Math.random() * 100, Math.random() * 100, 20);
+        const mobKey = Math.random().toString();
+        mobs[mobKey] = newMob;
+        io.emit('newMob', { id: mobKey, position: newMob.hitBox.position });
     }
 }

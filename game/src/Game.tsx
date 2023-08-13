@@ -72,6 +72,8 @@ export default class Game extends Component<GameProps> {
         this.webSocket.playerRotationUpdateListener();
         this.webSocket.mobPositionUpdatesListener();
         this.webSocket.mobHitListener();
+        this.webSocket.newMobListener();
+        this.webSocket.mobDeathListener();
         // this.webSocket.listenDebug();
         this.webSocket.disconnected();
     }
