@@ -24,6 +24,9 @@ export default class Weapon extends Component<WeaponProps> {
 
     public weaponAddon: WeaponAddon;
 
+    public attackCooldown = this.props.player.classType === "warrior" ? 0.5 : 1;
+    public lastAttackTime = 0;
+
 
     constructor(props: WeaponProps) {
         super(props);
@@ -117,13 +120,22 @@ export default class Weapon extends Component<WeaponProps> {
     }
 
     shoot() {
+        // if (this.lastAttackTime + this.attackCooldown > Date.now()) {
+        //     return;
+        // } convert this.attackCooldown to seconds
+        if (this.lastAttackTime + this.attackCooldown * 1000 > Date.now()) {
+            return;
+        }
         switch (this.props.player.classType) {
             case "warrior":
                 this.attackAction.play();
                 this.strikeAction.play();
-
+                
                 this.attackAction.reset();
                 this.strikeAction.reset();
+
+                this.props.player.attackCooldown = this.attackCooldown;
+                this.lastAttackTime = Date.now();
                 break;
             case "ranger":
                 this.weaponAddon.shoot();
@@ -132,6 +144,11 @@ export default class Weapon extends Component<WeaponProps> {
     }
 
     release() {
+        if (this.lastAttackTime + this.attackCooldown * 1000 > Date.now()) {
+            return;
+        }
+        this.lastAttackTime = Date.now();
+        this.props.player.attackCooldown = this.attackCooldown;
         this.weaponAddon.release();
     }
 

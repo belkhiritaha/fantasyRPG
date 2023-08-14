@@ -193,6 +193,8 @@ export default class Game extends Component<GameProps> {
 
         this.pointLight.position.set(this.player.position.x, this.player.position.y + 1000 , this.player.position.z);
         
+        this.player.attackCooldown -= delaTime;
+        if (this.player.attackCooldown < 0) this.player.attackCooldown = 0;
         this.player.weapon.bobbleWeapon(delaTime);
         for (const hitText of this.hitTextList) {
             if (!hitText) continue;

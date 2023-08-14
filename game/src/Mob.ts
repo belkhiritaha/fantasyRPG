@@ -5,6 +5,7 @@ import Character from "./loaders/Character";
 interface MobProps {
     position: THREE.Vector3;
     scene: THREE.Scene;
+    hp: number;
 }
 
 export default class Mob extends Component<MobProps> {
@@ -14,6 +15,7 @@ export default class Mob extends Component<MobProps> {
     public velocity: THREE.Vector3;
     public height = 5;
     public name = '';
+    public hp = this.props.hp;
 
     constructor(props: MobProps) {
         super(props);

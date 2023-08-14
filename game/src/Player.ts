@@ -21,6 +21,7 @@ export default class Player extends Component<PlayerProps> {
     public weapon: Weapon;
     public group: THREE.Group;
     public classType = this.props.classType;
+    public attackCooldown = 0;
 
     public lookAtLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff0000 }));
 

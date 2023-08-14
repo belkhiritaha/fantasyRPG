@@ -6,6 +6,7 @@ interface EnemyProps {
     position: THREE.Vector3;
     scene: THREE.Scene;
     classType: string;
+    hp: number;
 }
 
 export default class Enemy extends Component<EnemyProps> {
@@ -15,7 +16,7 @@ export default class Enemy extends Component<EnemyProps> {
     public velocity: THREE.Vector3;
     public height = 0;
     public name = '';
-    public hp = 100;
+    public hp = this.props.hp;
     public classType = this.props.classType;
 
     constructor(props: EnemyProps) {

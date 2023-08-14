@@ -6,13 +6,14 @@ interface CharacterProps {
     position: THREE.Vector3;
     scene: THREE.Scene;
     modelPath: string;
+    hp: number;
 }
 
 export default class Character extends Component<CharacterProps> {
     public gltf: THREE.Group;
     public mixer: THREE.AnimationMixer;
 
-    public hp = 100;
+    public hp = this.props.hp;
     
     public runAction: THREE.AnimationAction;
     public idleAction: THREE.AnimationAction;
@@ -42,17 +43,31 @@ export default class Character extends Component<CharacterProps> {
                 if (props.modelPath === "Knight.glb" || props.modelPath === "Rogue_Hooded.glb") {
                     this.runAction = this.mixer.clipAction(gltf.animations[48]);
                     this.idleAction = this.mixer.clipAction(gltf.animations[36]);
-                    this.attackAction.push(this.mixer.clipAction(gltf.animations[0])); // from 0 to 3 are attack animations
-                    this.attackAction.push(this.mixer.clipAction(gltf.animations[1]));
-                    this.attackAction.push(this.mixer.clipAction(gltf.animations[2]));
-                    // this.attackAction.push(this.mixer.clipAction(gltf.animations[3]));
-                    this.attackAction.push(this.mixer.clipAction(gltf.animations[8]));
-
-                    for (let i = 0; i < this.attackAction.length; i++) {
-                        // this.attackAction[i].clampWhenFinished = true;
-                        this.attackAction[i].loop = THREE.LoopOnce;
-                        this.attackAction[i].timeScale = 10;
+                    switch (props.modelPath) {
+                        case "Knight.glb":
+                            this.attackAction.push(this.mixer.clipAction(gltf.animations[0])); // from 0 to 3 are attack animations
+                            this.attackAction.push(this.mixer.clipAction(gltf.animations[1]));
+                            this.attackAction.push(this.mixer.clipAction(gltf.animations[2]));
+                            // this.attackAction.push(this.mixer.clipAction(gltf.animations[3]));
+                            this.attackAction.push(this.mixer.clipAction(gltf.animations[8]));
+                            for (let i = 0; i < this.attackAction.length; i++) {
+                                // this.attackAction[i].clampWhenFinished = true;
+                                this.attackAction[i].loop = THREE.LoopOnce;
+                                this.attackAction[i].timeScale = 15;
+                            }
+                            break;
+                        case "Rogue_Hooded.glb":
+                            console.log(gltf.animations);
+                            this.attackAction.push(this.mixer.clipAction(gltf.animations[17]));
+                            for (let i = 0; i < this.attackAction.length; i++) {
+                                // this.attackAction[i].clampWhenFinished = true;
+                                this.attackAction[i].loop = THREE.LoopOnce;
+                                this.attackAction[i].timeScale = 10;
+                                // this.attackAction[i].setDuration(0.1);
+                            }
+                            break;
                     }
+
                     // this.attackAction.play();
                     this.idleAction.timeScale = 3;
                     this.runAction.timeScale = 6;
@@ -66,7 +81,7 @@ export default class Character extends Component<CharacterProps> {
                     // hp bar
                     // const geometry = new THREE.PlaneGeometry(1, 0.1); needs to be proportional to the hp
                     const geometry = new THREE.PlaneGeometry(1 * this.hp / 100, 0.1);
-                    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                    const material = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
                     const plane = new THREE.Mesh(geometry, material);
                     plane.position.set(0, 3, 0);
                     plane.name = "hpBar";
@@ -74,7 +89,6 @@ export default class Character extends Component<CharacterProps> {
                 else {
                     // scale x2
                     gltf.scene.scale.set(2, 2, 2);
-                    console.log(gltf.animations);
 
                     this.idleAction = this.mixer.clipAction(gltf.animations[36]);
                     this.idleAction.timeScale = 3;
@@ -113,8 +127,9 @@ export default class Character extends Component<CharacterProps> {
     }
     
     setXAxisAngle(xAxisAngle: number) {
-        const headBone = (this.gltf?.children[0].children[3] as THREE.SkinnedMesh).skeleton.bones[14];
-        headBone.rotation.x = xAxisAngle;
+        const headBone = (this.gltf?.children[0].children[3] as THREE.SkinnedMesh)?.skeleton.bones[14];
+        // headBone.rotation.x = xAxisAngle;
+        headBone ? headBone.rotation.x = xAxisAngle : null;
     }
 
     update(deltaTime: number) {
@@ -139,8 +154,8 @@ export default class Character extends Component<CharacterProps> {
 
     playAttackAnimation() {
         const randomAttack = Math.floor(Math.random() * this.attackAction.length);
-        this.attackAction[randomAttack].play();
         this.attackAction[randomAttack].reset();
+        this.attackAction[randomAttack].play();
     }
 
     playRunAnimation() {
